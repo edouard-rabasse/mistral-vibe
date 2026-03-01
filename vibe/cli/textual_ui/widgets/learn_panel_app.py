@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import random
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Self
 
 if TYPE_CHECKING:
     from vibe.core.config import VibeConfig
@@ -17,6 +17,12 @@ from textual.reactive import reactive
 from textual.widgets import Input
 
 from vibe.cli.textual_ui.widgets.no_markup_static import NoMarkupStatic
+from vibe.core.tools.builtins.learn_ask_question import (
+    LearnQuestion,
+    LearnQuestionResult,
+    MultipleChoiceQuestion,
+    OpenEndedQuestion,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,249 +30,272 @@ logger = logging.getLogger(__name__)
 # Mock data & helpers
 # ---------------------------------------------------------------------------
 
-MOCK_QUESTIONS: list[dict[str, Any]] = [
+# Each entry is (content_category, LearnQuestion) — category is mock-only
+# filtering metadata not part of the LearnQuestion model.
+MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
     # ── codebase / multiple_choice ──────────────────────────────────
-    {
-        "type": "multiple_choice",
-        "content_category": "codebase",
-        "question": "What does `git rebase` do?",
-        "choices": [
-            "Merges branches by creating a merge commit",
-            "Replays commits on a new base",
-            "Permanently deletes a branch",
-            "Creates an annotated tag",
-        ],
-        "correct_answer": "Replays commits on a new base",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "codebase",
-        "question": "Which command stages all changes for the next commit?",
-        "choices": [
-            "git commit -a",
-            "git add .",
-            "git push",
-            "git stash",
-        ],
-        "correct_answer": "git add .",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "codebase",
-        "question": "What does `git stash pop` do?",
-        "choices": [
-            "Deletes the stash permanently",
-            "Applies the most recent stash and removes it from the stash list",
-            "Creates a new stash from staged changes only",
-            "Pushes the current branch to the remote",
-        ],
-        "correct_answer": "Applies the most recent stash and removes it from the stash list",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "codebase",
-        "question": "In a typical Python project, what is the purpose of `__init__.py`?",
-        "choices": [
-            "It configures the test runner",
-            "It marks a directory as a Python package",
-            "It stores environment variables",
-            "It lists all public API symbols for external use",
-        ],
-        "correct_answer": "It marks a directory as a Python package",
-    },
+    (
+        "codebase",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="What does `git rebase` do?",
+            choices=[
+                "Merges branches by creating a merge commit",
+                "Replays commits on a new base",
+                "Permanently deletes a branch",
+                "Creates an annotated tag",
+            ],
+            correct_answer="Replays commits on a new base",
+        )),
+    ),
+    (
+        "codebase",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="Which command stages all changes for the next commit?",
+            choices=[
+                "git commit -a",
+                "git add .",
+                "git push",
+                "git stash",
+            ],
+            correct_answer="git add .",
+        )),
+    ),
+    (
+        "codebase",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="What does `git stash pop` do?",
+            choices=[
+                "Deletes the stash permanently",
+                "Applies the most recent stash and removes it from the stash list",
+                "Creates a new stash from staged changes only",
+                "Pushes the current branch to the remote",
+            ],
+            correct_answer="Applies the most recent stash and removes it from the stash list",
+        )),
+    ),
+    (
+        "codebase",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="In a typical Python project, what is the purpose of `__init__.py`?",
+            choices=[
+                "It configures the test runner",
+                "It marks a directory as a Python package",
+                "It stores environment variables",
+                "It lists all public API symbols for external use",
+            ],
+            correct_answer="It marks a directory as a Python package",
+        )),
+    ),
     # ── codebase / open_ended ───────────────────────────────────────
-    {
-        "type": "open_ended",
-        "content_category": "codebase",
-        "question": "What is the difference between `git merge` and `git rebase`?",
-        "answer": (
-            "`git merge` integrates changes by creating a merge commit, preserving "
-            "the full history. `git rebase` rewrites history by replaying commits "
-            "on top of another branch, producing a linear history."
-        ),
-    },
-    {
-        "type": "open_ended",
-        "content_category": "codebase",
-        "question": "Explain the purpose of a `.gitignore` file.",
-        "answer": (
-            "A `.gitignore` file tells Git which files or directories to ignore and "
-            "not track. This commonly includes build artifacts, IDE settings, and "
-            "secrets such as `.env` files."
-        ),
-    },
-    {
-        "type": "open_ended",
-        "content_category": "codebase",
-        "question": "What does `git cherry-pick` do and when would you use it?",
-        "answer": (
-            "`git cherry-pick` applies the changes introduced by an existing commit "
-            "onto the current branch. It is useful when you want to bring a specific "
-            "fix from one branch into another without merging the entire branch."
-        ),
-    },
+    (
+        "codebase",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="What is the difference between `git merge` and `git rebase`?",
+            answer=(
+                "`git merge` integrates changes by creating a merge commit, preserving "
+                "the full history. `git rebase` rewrites history by replaying commits "
+                "on top of another branch, producing a linear history."
+            ),
+        )),
+    ),
+    (
+        "codebase",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="Explain the purpose of a `.gitignore` file.",
+            answer=(
+                "A `.gitignore` file tells Git which files or directories to ignore and "
+                "not track. This commonly includes build artifacts, IDE settings, and "
+                "secrets such as `.env` files."
+            ),
+        )),
+    ),
+    (
+        "codebase",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="What does `git cherry-pick` do and when would you use it?",
+            answer=(
+                "`git cherry-pick` applies the changes introduced by an existing commit "
+                "onto the current branch. It is useful when you want to bring a specific "
+                "fix from one branch into another without merging the entire branch."
+            ),
+        )),
+    ),
     # ── coding_patterns / multiple_choice ───────────────────────────
-    {
-        "type": "multiple_choice",
-        "content_category": "coding_patterns",
-        "question": "What does a Python decorator do?",
-        "choices": [
-            "Compiles a function to native code",
-            "Wraps a function to extend or modify its behavior",
-            "Converts a class into a singleton",
-            "Pins a module's public API",
-        ],
-        "correct_answer": "Wraps a function to extend or modify its behavior",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "coding_patterns",
-        "question": "Which design pattern ensures a class has only one instance?",
-        "choices": [
-            "Factory",
-            "Observer",
-            "Singleton",
-            "Strategy",
-        ],
-        "correct_answer": "Singleton",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "coding_patterns",
-        "question": "What is the primary purpose of dependency injection?",
-        "choices": [
-            "To speed up module import time",
-            "To decouple a class from the creation of its dependencies",
-            "To enforce strict typing at runtime",
-            "To automatically generate unit tests",
-        ],
-        "correct_answer": "To decouple a class from the creation of its dependencies",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "coding_patterns",
-        "question": "In the context of async Python, what does `await` do?",
-        "choices": [
-            "Blocks the OS thread until the coroutine finishes",
-            "Suspends the current coroutine and yields control to the event loop",
-            "Creates a new thread for the coroutine",
-            "Forces garbage collection before continuing",
-        ],
-        "correct_answer": "Suspends the current coroutine and yields control to the event loop",
-    },
+    (
+        "coding_patterns",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="What does a Python decorator do?",
+            choices=[
+                "Compiles a function to native code",
+                "Wraps a function to extend or modify its behavior",
+                "Converts a class into a singleton",
+                "Pins a module's public API",
+            ],
+            correct_answer="Wraps a function to extend or modify its behavior",
+        )),
+    ),
+    (
+        "coding_patterns",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="Which design pattern ensures a class has only one instance?",
+            choices=[
+                "Factory",
+                "Observer",
+                "Singleton",
+                "Strategy",
+            ],
+            correct_answer="Singleton",
+        )),
+    ),
+    (
+        "coding_patterns",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="What is the primary purpose of dependency injection?",
+            choices=[
+                "To speed up module import time",
+                "To decouple a class from the creation of its dependencies",
+                "To enforce strict typing at runtime",
+                "To automatically generate unit tests",
+            ],
+            correct_answer="To decouple a class from the creation of its dependencies",
+        )),
+    ),
+    (
+        "coding_patterns",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="In the context of async Python, what does `await` do?",
+            choices=[
+                "Blocks the OS thread until the coroutine finishes",
+                "Suspends the current coroutine and yields control to the event loop",
+                "Creates a new thread for the coroutine",
+                "Forces garbage collection before continuing",
+            ],
+            correct_answer="Suspends the current coroutine and yields control to the event loop",
+        )),
+    ),
     # ── coding_patterns / open_ended ────────────────────────────────
-    {
-        "type": "open_ended",
-        "content_category": "coding_patterns",
-        "question": "Explain what a Python decorator does and give a common use-case.",
-        "answer": (
-            "A decorator is a function that takes another function as input, wraps it "
-            "to add behavior, and returns the wrapped function. Common use-cases include "
-            "logging, caching (e.g., `@lru_cache`), access control, and timing."
-        ),
-    },
-    {
-        "type": "open_ended",
-        "content_category": "coding_patterns",
-        "question": "What is the difference between a generator and a regular function in Python?",
-        "answer": (
-            "A generator uses `yield` instead of `return` and produces values lazily "
-            "one at a time, suspending execution between calls. A regular function runs "
-            "to completion and returns a single value."
-        ),
-    },
-    {
-        "type": "open_ended",
-        "content_category": "coding_patterns",
-        "question": "Explain the Open/Closed Principle from SOLID.",
-        "answer": (
-            "The Open/Closed Principle states that software entities should be open for "
-            "extension but closed for modification. You add new behavior by extending "
-            "(e.g., subclassing or composing) rather than changing existing code."
-        ),
-    },
+    (
+        "coding_patterns",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="Explain what a Python decorator does and give a common use-case.",
+            answer=(
+                "A decorator is a function that takes another function as input, wraps it "
+                "to add behavior, and returns the wrapped function. Common use-cases include "
+                "logging, caching (e.g., `@lru_cache`), access control, and timing."
+            ),
+        )),
+    ),
+    (
+        "coding_patterns",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="What is the difference between a generator and a regular function in Python?",
+            answer=(
+                "A generator uses `yield` instead of `return` and produces values lazily "
+                "one at a time, suspending execution between calls. A regular function runs "
+                "to completion and returns a single value."
+            ),
+        )),
+    ),
+    (
+        "coding_patterns",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="Explain the Open/Closed Principle from SOLID.",
+            answer=(
+                "The Open/Closed Principle states that software entities should be open for "
+                "extension but closed for modification. You add new behavior by extending "
+                "(e.g., subclassing or composing) rather than changing existing code."
+            ),
+        )),
+    ),
     # ── current_tasks / multiple_choice ─────────────────────────────
-    {
-        "type": "multiple_choice",
-        "content_category": "current_tasks",
-        "question": "What Textual widget class does `LearnPanelApp` extend?",
-        "choices": [
-            "Widget",
-            "App",
-            "Container",
-            "Screen",
-        ],
-        "correct_answer": "Container",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "current_tasks",
-        "question": "In Textual, which method must a widget implement to declare its child widgets?",
-        "choices": [
-            "__init__",
-            "compose",
-            "on_mount",
-            "render",
-        ],
-        "correct_answer": "compose",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "current_tasks",
-        "question": "Which config field controls the learn question format in this project?",
-        "choices": [
-            "learn_mode",
-            "learn_questions_format",
-            "question_type",
-            "learn_format_setting",
-        ],
-        "correct_answer": "learn_questions_format",
-    },
-    {
-        "type": "multiple_choice",
-        "content_category": "current_tasks",
-        "question": "What does `reactive` provide in a Textual widget?",
-        "choices": [
-            "Async task scheduling",
-            "Automatic re-rendering when a value changes",
-            "Database persistence of widget state",
-            "CSS class toggling",
-        ],
-        "correct_answer": "Automatic re-rendering when a value changes",
-    },
+    (
+        "current_tasks",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="What Textual widget class does `LearnPanelApp` extend?",
+            choices=[
+                "Widget",
+                "App",
+                "Container",
+                "Screen",
+            ],
+            correct_answer="Container",
+        )),
+    ),
+    (
+        "current_tasks",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="In Textual, which method must a widget implement to declare its child widgets?",
+            choices=[
+                "__init__",
+                "compose",
+                "on_mount",
+                "render",
+            ],
+            correct_answer="compose",
+        )),
+    ),
+    (
+        "current_tasks",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="Which config field controls the learn question format in this project?",
+            choices=[
+                "learn_mode",
+                "learn_questions_format",
+                "question_type",
+                "learn_format_setting",
+            ],
+            correct_answer="learn_questions_format",
+        )),
+    ),
+    (
+        "current_tasks",
+        LearnQuestion(multiple_choice=MultipleChoiceQuestion(
+            question="What does `reactive` provide in a Textual widget?",
+            choices=[
+                "Async task scheduling",
+                "Automatic re-rendering when a value changes",
+                "Database persistence of widget state",
+                "CSS class toggling",
+            ],
+            correct_answer="Automatic re-rendering when a value changes",
+        )),
+    ),
     # ── current_tasks / open_ended ───────────────────────────────────
-    {
-        "type": "open_ended",
-        "content_category": "current_tasks",
-        "question": "Describe the lifecycle phases of a quiz session in LearnPanelApp.",
-        "answer": (
-            "The panel moves through four phases: ASKING (user sees the question and "
-            "selects or types an answer), VALIDATING (user sees correct/incorrect "
-            "feedback and self-marks open-ended answers), SUMMARY (results for all "
-            "questions are shown), and REVIEWING (read-only playback of individual "
-            "answered questions from the summary)."
-        ),
-    },
-    {
-        "type": "open_ended",
-        "content_category": "current_tasks",
-        "question": "Why is it important to track seen questions across sessions in LearnPanelApp?",
-        "answer": (
-            "Without tracking, every new session would show the same filtered questions. "
-            "Tracking ensures the user sees new questions each session and only cycles "
-            "back to earlier ones after the entire pool is exhausted."
-        ),
-    },
-    {
-        "type": "open_ended",
-        "content_category": "current_tasks",
-        "question": "What is the role of the `_switch_from_input` method in the Textual app?",
-        "answer": (
-            "`_switch_from_input` hides or removes the current bottom widget, mounts the "
-            "new widget into the bottom container, updates `_current_bottom_app`, and "
-            "gives focus to the newly mounted widget."
-        ),
-    },
+    (
+        "current_tasks",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="Describe the lifecycle phases of a quiz session in LearnPanelApp.",
+            answer=(
+                "The panel moves through four phases: ASKING (user sees the question and "
+                "selects or types an answer), VALIDATING (user sees correct/incorrect "
+                "feedback and self-marks open-ended answers), SUMMARY (results for all "
+                "questions are shown), and REVIEWING (read-only playback of individual "
+                "answered questions from the summary)."
+            ),
+        )),
+    ),
+    (
+        "current_tasks",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="Why is it important to track seen questions across sessions in LearnPanelApp?",
+            answer=(
+                "Without tracking, every new session would show the same filtered questions. "
+                "Tracking ensures the user sees new questions each session and only cycles "
+                "back to earlier ones after the entire pool is exhausted."
+            ),
+        )),
+    ),
+    (
+        "current_tasks",
+        LearnQuestion(open_ended=OpenEndedQuestion(
+            question="What is the role of the `_switch_from_input` method in the Textual app?",
+            answer=(
+                "`_switch_from_input` hides or removes the current bottom widget, mounts the "
+                "new widget into the bottom container, updates `_current_bottom_app`, and "
+                "gives focus to the newly mounted widget."
+            ),
+        )),
+    ),
 ]
 
 ENCOURAGEMENTS = [
@@ -278,11 +307,16 @@ ENCOURAGEMENTS = [
 ]
 
 
+def _question_type(cat: str, q: LearnQuestion) -> str:
+    """Return 'multiple_choice' or 'open_ended' for filtering."""
+    return "multiple_choice" if q.multiple_choice is not None else "open_ended"
+
+
 def mock_ask_questions(
     questions_format: str,
     active_categories: set[str],
     seen_indices: set[int],
-) -> tuple[list[dict[str, Any]], set[int]]:
+) -> tuple[list[LearnQuestion], set[int]]:
     """Return filtered questions, avoiding repetition across sessions.
 
     Filters MOCK_QUESTIONS by type (from questions_format) and content_category
@@ -301,8 +335,8 @@ def mock_ask_questions(
 
     candidates = [
         (idx, q)
-        for idx, q in enumerate(MOCK_QUESTIONS)
-        if q["type"] in allowed_types and q.get("content_category") in active_categories
+        for idx, (cat, q) in enumerate(MOCK_QUESTIONS)
+        if _question_type(cat, q) in allowed_types and cat in active_categories
     ]
 
     if not candidates:
@@ -323,7 +357,7 @@ def mock_ask_questions(
 def mock_save_context(
     question: str, user_answer: str, correct_answer: str, was_correct: bool
 ) -> None:
-    """No-op mock – would persist learning context in a real implementation."""
+    """No-op mock -- would persist learning context in a real implementation."""
     logger.debug(
         "save_context: q=%r user=%r correct=%r ok=%s",
         question,
@@ -353,7 +387,7 @@ class Phase(enum.Enum):
 class LearnPanelApp(Container):
     """Interactive quiz panel for the learn feature."""
 
-    MAX_OPTIONS: ClassVar[int] = 4
+    MAX_OPTIONS: ClassVar[int] = 5
     _SUMMARY_QUESTION_MAX_LEN: ClassVar[int] = 70
 
     can_focus = True
@@ -371,12 +405,20 @@ class LearnPanelApp(Container):
     class Closed(Message):
         pass
 
+    class QuestionAnswered(Message):
+        """Posted after the summary is reached, carrying all quiz results."""
+
+        def __init__(self, results: list[LearnQuestionResult]) -> None:
+            super().__init__()
+            self.results = results
+
     # ── lifecycle ────────────────────────────────────────────────────
 
-    def __init__(self, config: "VibeConfig") -> None:
+    def __init__(self, config: VibeConfig) -> None:
         super().__init__(id="learnpanel-app")
         self._config = config
         self._seen_question_indices: set[int] = set()
+        self._questions: list[LearnQuestion]
         self._questions, self._seen_question_indices = mock_ask_questions(
             questions_format=self._config.learn_questions_format,
             active_categories=self._active_categories(),
@@ -387,8 +429,9 @@ class LearnPanelApp(Container):
         self._user_answer: str = ""
         # history of answered questions: idx -> (user_answer, was_correct)
         self._answered: dict[int, tuple[str, bool]] = {}
+        self._results: list[LearnQuestionResult] = []
 
-        # widgets – populated in compose
+        # widgets -- populated in compose
         self._title_widget: NoMarkupStatic | None = None
         self._question_widget: NoMarkupStatic | None = None
         self._option_widgets: list[NoMarkupStatic] = []
@@ -413,18 +456,32 @@ class LearnPanelApp(Container):
     # ── properties ───────────────────────────────────────────────────
 
     @property
-    def _current_q(self) -> dict[str, Any]:
+    def _current_q(self) -> LearnQuestion:
         return self._questions[self._question_idx]
 
     @property
     def _is_mc(self) -> bool:
-        return self._current_q["type"] == "multiple_choice"
+        return self._current_q.multiple_choice is not None
+
+    @property
+    def _q_text(self) -> str:
+        if self._current_q.multiple_choice is not None:
+            return self._current_q.multiple_choice.question
+        assert self._current_q.open_ended is not None
+        return self._current_q.open_ended.question
+
+    @property
+    def _q_choices(self) -> list[str]:
+        if self._current_q.multiple_choice is not None:
+            return self._current_q.multiple_choice.choices
+        return []
 
     @property
     def _correct_answer(self) -> str:
-        if self._is_mc:
-            return self._current_q["correct_answer"]
-        return self._current_q["answer"]
+        if self._current_q.multiple_choice is not None:
+            return self._current_q.multiple_choice.correct_answer
+        assert self._current_q.open_ended is not None
+        return self._current_q.open_ended.answer
 
     @property
     def _all_answered(self) -> bool:
@@ -467,9 +524,15 @@ class LearnPanelApp(Container):
             self._help_widget = NoMarkupStatic("", classes="learnpanel-help")
             yield self._help_widget
 
+    def focus(self, scroll_visible: bool = True) -> Self:
+        """Override focus to redirect to the input widget for open-ended questions."""
+        if self._phase == Phase.ASKING and not self._is_mc and self._input_widget:
+            self._input_widget.focus(scroll_visible=scroll_visible)
+            return self
+        return super().focus(scroll_visible=scroll_visible)
+
     async def on_mount(self) -> None:
         self._update_display()
-        self.focus()
 
     # ── rendering ────────────────────────────────────────────────────
 
@@ -497,10 +560,9 @@ class LearnPanelApp(Container):
             self._render_empty()
             return
 
-        q = self._current_q
         progress = f"[{self._question_idx + 1}/{len(self._questions)}] "
         if self._question_widget:
-            self._question_widget.update(progress + q["question"])
+            self._question_widget.update(progress + self._q_text)
 
         if self._phase == Phase.ASKING:
             self._render_asking()
@@ -544,7 +606,7 @@ class LearnPanelApp(Container):
                 q = self._questions[i]
                 user_ans, was_correct = self._answered.get(i, ("", False))
                 mark = "v" if was_correct else "x"
-                short_q = q["question"]
+                short_q = self._q_text_for(q)
                 if len(short_q) > self._SUMMARY_QUESTION_MAX_LEN:
                     short_q = short_q[:self._SUMMARY_QUESTION_MAX_LEN - 3] + "..."
                 w.update(f"  {mark}  Q{i + 1}. {short_q}")
@@ -573,10 +635,9 @@ class LearnPanelApp(Container):
 
     def _render_review(self) -> None:
         """Read-only review of an answered question from the summary."""
-        q = self._current_q
         progress = f"[{self._question_idx + 1}/{len(self._questions)}] "
         if self._question_widget:
-            self._question_widget.update(progress + q["question"])
+            self._question_widget.update(progress + self._q_text)
 
         user_answer, was_correct = self._answered[self._question_idx]
         self._user_answer = user_answer
@@ -593,10 +654,20 @@ class LearnPanelApp(Container):
         if self._help_widget:
             self._help_widget.update("Left/Right review questions  Enter back to summary  ESC close")
 
+    # ── static helpers ──────────────────────────────────────────────
+
+    @staticmethod
+    def _q_text_for(q: LearnQuestion) -> str:
+        """Extract question text from a LearnQuestion."""
+        if q.multiple_choice is not None:
+            return q.multiple_choice.question
+        assert q.open_ended is not None
+        return q.open_ended.question
+
     # ── MC asking ────────────────────────────────────────────────────
 
     def _show_mc_options(self) -> None:
-        choices = self._current_q.get("choices", [])
+        choices = self._q_choices
         for i, w in enumerate(self._option_widgets):
             if i < len(choices):
                 is_sel = i == self.selected_option
@@ -618,7 +689,7 @@ class LearnPanelApp(Container):
     # ── MC validation ────────────────────────────────────────────────
 
     def _show_mc_validation(self) -> None:
-        choices = self._current_q.get("choices", [])
+        choices = self._q_choices
         correct = self._correct_answer
         user_choice = self._user_answer
 
@@ -763,7 +834,7 @@ class LearnPanelApp(Container):
 
     def _total_options(self) -> int:
         if self._phase == Phase.ASKING and self._is_mc:
-            return len(self._current_q.get("choices", []))
+            return len(self._q_choices)
         if self._phase == Phase.VALIDATING and not self._is_mc:
             return 2  # Correct / Incorrect
         return 0
@@ -786,7 +857,7 @@ class LearnPanelApp(Container):
 
     def _submit_answer(self) -> None:
         if self._is_mc:
-            choices = self._current_q.get("choices", [])
+            choices = self._q_choices
             if 0 <= self.selected_option < len(choices):
                 self._user_answer = choices[self.selected_option]
             else:
@@ -809,13 +880,21 @@ class LearnPanelApp(Container):
             was_correct = self.selected_option == 0  # 0 = Correct
 
         mock_save_context(
-            question=self._current_q["question"],
+            question=self._q_text,
             user_answer=self._user_answer,
             correct_answer=self._correct_answer,
             was_correct=was_correct,
         )
 
         self._answered[self._question_idx] = (self._user_answer, was_correct)
+
+        self._results.append(LearnQuestionResult(
+            question=self._q_text,
+            question_type="multiple_choice" if self._is_mc else "open_ended",
+            user_answer=self._user_answer,
+            correct_answer=self._correct_answer,
+            was_correct=was_correct,
+        ))
 
         if self._all_answered:
             self._go_to_summary()
@@ -849,6 +928,7 @@ class LearnPanelApp(Container):
             w.remove_class("learnpanel-correct", "learnpanel-incorrect")
 
         self._update_display()
+        self.post_message(self.QuestionAnswered(list(self._results)))
 
     def _start_new_session(self) -> None:
         """Reset quiz state and pick a fresh, non-repeating set of questions."""
@@ -861,6 +941,7 @@ class LearnPanelApp(Container):
         self._phase = Phase.ASKING
         self._user_answer = ""
         self._answered = {}
+        self._results = []
         self.selected_option = 0
 
         for w in self._option_widgets:

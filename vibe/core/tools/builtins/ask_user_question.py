@@ -46,9 +46,9 @@ class Question(BaseModel):
 
 class AskUserQuestionArgs(BaseModel):
     questions: list[Question] = Field(
-        description="Questions to ask (1-4). Displayed as tabs if multiple.",
+        description="Questions to ask (1-5). Displayed as tabs if multiple.",
         min_length=1,
-        max_length=4,
+        max_length=5,
     )
 
 
