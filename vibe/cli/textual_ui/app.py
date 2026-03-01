@@ -1267,6 +1267,8 @@ class VibeApp(App):  # noqa: PLR0904
                     self.query_one(QuestionApp).focus()
                 case BottomApp.SessionPicker:
                     self.query_one(SessionPickerApp).focus()
+                case BottomApp.LearnPanel:
+                    self.query_one(LearnPanelApp).focus()
                 case app:
                     assert_never(app)
         except Exception:
