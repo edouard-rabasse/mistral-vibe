@@ -1228,7 +1228,7 @@ class VibeApp(App):  # noqa: PLR0904
     async def _switch_to_learn_panel_app(self) -> None:
         if self._current_bottom_app == BottomApp.LearnPanel:
             return
-        await self._switch_from_input(LearnPanelApp())
+        await self._switch_from_input(LearnPanelApp(config=self.config))
 
     async def on_learn_panel_app_closed(self, _: LearnPanelApp.Closed) -> None:
         await self._switch_to_input_app()

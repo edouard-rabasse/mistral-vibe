@@ -3,7 +3,10 @@ from __future__ import annotations
 import enum
 import logging
 import random
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from vibe.core.config import VibeConfig
 
 from textual import events
 from textual.app import ComposeResult
@@ -22,25 +25,23 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 MOCK_QUESTIONS: list[dict[str, Any]] = [
+    # ── codebase / multiple_choice ──────────────────────────────────
     {
         "type": "multiple_choice",
+        "content_category": "codebase",
         "question": "What does `git rebase` do?",
         "choices": [
-            "Merges branches",
+            "Merges branches by creating a merge commit",
             "Replays commits on a new base",
-            "Deletes a branch",
-            "Creates a tag",
+            "Permanently deletes a branch",
+            "Creates an annotated tag",
         ],
         "correct_answer": "Replays commits on a new base",
     },
     {
-        "type": "open_ended",
-        "question": "Explain what a Python decorator does.",
-        "answer": "A decorator wraps a function to extend its behavior without modifying it.",
-    },
-    {
         "type": "multiple_choice",
-        "question": "Which command stages all changes for commit?",
+        "content_category": "codebase",
+        "question": "Which command stages all changes for the next commit?",
         "choices": [
             "git commit -a",
             "git add .",
@@ -48,6 +49,223 @@ MOCK_QUESTIONS: list[dict[str, Any]] = [
             "git stash",
         ],
         "correct_answer": "git add .",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "codebase",
+        "question": "What does `git stash pop` do?",
+        "choices": [
+            "Deletes the stash permanently",
+            "Applies the most recent stash and removes it from the stash list",
+            "Creates a new stash from staged changes only",
+            "Pushes the current branch to the remote",
+        ],
+        "correct_answer": "Applies the most recent stash and removes it from the stash list",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "codebase",
+        "question": "In a typical Python project, what is the purpose of `__init__.py`?",
+        "choices": [
+            "It configures the test runner",
+            "It marks a directory as a Python package",
+            "It stores environment variables",
+            "It lists all public API symbols for external use",
+        ],
+        "correct_answer": "It marks a directory as a Python package",
+    },
+    # ── codebase / open_ended ───────────────────────────────────────
+    {
+        "type": "open_ended",
+        "content_category": "codebase",
+        "question": "What is the difference between `git merge` and `git rebase`?",
+        "answer": (
+            "`git merge` integrates changes by creating a merge commit, preserving "
+            "the full history. `git rebase` rewrites history by replaying commits "
+            "on top of another branch, producing a linear history."
+        ),
+    },
+    {
+        "type": "open_ended",
+        "content_category": "codebase",
+        "question": "Explain the purpose of a `.gitignore` file.",
+        "answer": (
+            "A `.gitignore` file tells Git which files or directories to ignore and "
+            "not track. This commonly includes build artifacts, IDE settings, and "
+            "secrets such as `.env` files."
+        ),
+    },
+    {
+        "type": "open_ended",
+        "content_category": "codebase",
+        "question": "What does `git cherry-pick` do and when would you use it?",
+        "answer": (
+            "`git cherry-pick` applies the changes introduced by an existing commit "
+            "onto the current branch. It is useful when you want to bring a specific "
+            "fix from one branch into another without merging the entire branch."
+        ),
+    },
+    # ── coding_patterns / multiple_choice ───────────────────────────
+    {
+        "type": "multiple_choice",
+        "content_category": "coding_patterns",
+        "question": "What does a Python decorator do?",
+        "choices": [
+            "Compiles a function to native code",
+            "Wraps a function to extend or modify its behavior",
+            "Converts a class into a singleton",
+            "Pins a module's public API",
+        ],
+        "correct_answer": "Wraps a function to extend or modify its behavior",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "coding_patterns",
+        "question": "Which design pattern ensures a class has only one instance?",
+        "choices": [
+            "Factory",
+            "Observer",
+            "Singleton",
+            "Strategy",
+        ],
+        "correct_answer": "Singleton",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "coding_patterns",
+        "question": "What is the primary purpose of dependency injection?",
+        "choices": [
+            "To speed up module import time",
+            "To decouple a class from the creation of its dependencies",
+            "To enforce strict typing at runtime",
+            "To automatically generate unit tests",
+        ],
+        "correct_answer": "To decouple a class from the creation of its dependencies",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "coding_patterns",
+        "question": "In the context of async Python, what does `await` do?",
+        "choices": [
+            "Blocks the OS thread until the coroutine finishes",
+            "Suspends the current coroutine and yields control to the event loop",
+            "Creates a new thread for the coroutine",
+            "Forces garbage collection before continuing",
+        ],
+        "correct_answer": "Suspends the current coroutine and yields control to the event loop",
+    },
+    # ── coding_patterns / open_ended ────────────────────────────────
+    {
+        "type": "open_ended",
+        "content_category": "coding_patterns",
+        "question": "Explain what a Python decorator does and give a common use-case.",
+        "answer": (
+            "A decorator is a function that takes another function as input, wraps it "
+            "to add behavior, and returns the wrapped function. Common use-cases include "
+            "logging, caching (e.g., `@lru_cache`), access control, and timing."
+        ),
+    },
+    {
+        "type": "open_ended",
+        "content_category": "coding_patterns",
+        "question": "What is the difference between a generator and a regular function in Python?",
+        "answer": (
+            "A generator uses `yield` instead of `return` and produces values lazily "
+            "one at a time, suspending execution between calls. A regular function runs "
+            "to completion and returns a single value."
+        ),
+    },
+    {
+        "type": "open_ended",
+        "content_category": "coding_patterns",
+        "question": "Explain the Open/Closed Principle from SOLID.",
+        "answer": (
+            "The Open/Closed Principle states that software entities should be open for "
+            "extension but closed for modification. You add new behavior by extending "
+            "(e.g., subclassing or composing) rather than changing existing code."
+        ),
+    },
+    # ── current_tasks / multiple_choice ─────────────────────────────
+    {
+        "type": "multiple_choice",
+        "content_category": "current_tasks",
+        "question": "What Textual widget class does `LearnPanelApp` extend?",
+        "choices": [
+            "Widget",
+            "App",
+            "Container",
+            "Screen",
+        ],
+        "correct_answer": "Container",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "current_tasks",
+        "question": "In Textual, which method must a widget implement to declare its child widgets?",
+        "choices": [
+            "__init__",
+            "compose",
+            "on_mount",
+            "render",
+        ],
+        "correct_answer": "compose",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "current_tasks",
+        "question": "Which config field controls the learn question format in this project?",
+        "choices": [
+            "learn_mode",
+            "learn_questions_format",
+            "question_type",
+            "learn_format_setting",
+        ],
+        "correct_answer": "learn_questions_format",
+    },
+    {
+        "type": "multiple_choice",
+        "content_category": "current_tasks",
+        "question": "What does `reactive` provide in a Textual widget?",
+        "choices": [
+            "Async task scheduling",
+            "Automatic re-rendering when a value changes",
+            "Database persistence of widget state",
+            "CSS class toggling",
+        ],
+        "correct_answer": "Automatic re-rendering when a value changes",
+    },
+    # ── current_tasks / open_ended ───────────────────────────────────
+    {
+        "type": "open_ended",
+        "content_category": "current_tasks",
+        "question": "Describe the lifecycle phases of a quiz session in LearnPanelApp.",
+        "answer": (
+            "The panel moves through four phases: ASKING (user sees the question and "
+            "selects or types an answer), VALIDATING (user sees correct/incorrect "
+            "feedback and self-marks open-ended answers), SUMMARY (results for all "
+            "questions are shown), and REVIEWING (read-only playback of individual "
+            "answered questions from the summary)."
+        ),
+    },
+    {
+        "type": "open_ended",
+        "content_category": "current_tasks",
+        "question": "Why is it important to track seen questions across sessions in LearnPanelApp?",
+        "answer": (
+            "Without tracking, every new session would show the same filtered questions. "
+            "Tracking ensures the user sees new questions each session and only cycles "
+            "back to earlier ones after the entire pool is exhausted."
+        ),
+    },
+    {
+        "type": "open_ended",
+        "content_category": "current_tasks",
+        "question": "What is the role of the `_switch_from_input` method in the Textual app?",
+        "answer": (
+            "`_switch_from_input` hides or removes the current bottom widget, mounts the "
+            "new widget into the bottom container, updates `_current_bottom_app`, and "
+            "gives focus to the newly mounted widget."
+        ),
     },
 ]
 
@@ -60,9 +278,46 @@ ENCOURAGEMENTS = [
 ]
 
 
-def mock_ask_questions() -> list[dict[str, Any]]:
-    """Return a list of mock questions."""
-    return list(MOCK_QUESTIONS)
+def mock_ask_questions(
+    questions_format: str,
+    active_categories: set[str],
+    seen_indices: set[int],
+) -> tuple[list[dict[str, Any]], set[int]]:
+    """Return filtered questions, avoiding repetition across sessions.
+
+    Filters MOCK_QUESTIONS by type (from questions_format) and content_category
+    (from active_categories), excludes already-seen indices, and shuffles the
+    result. If all matching questions have been seen, resets automatically so
+    the user always gets a non-empty list.
+
+    Returns a tuple of (selected_questions, updated_seen_indices).
+    """
+    if questions_format == "Multiple choice":
+        allowed_types = {"multiple_choice"}
+    elif questions_format == "Open-ended":
+        allowed_types = {"open_ended"}
+    else:
+        allowed_types = {"multiple_choice", "open_ended"}
+
+    candidates = [
+        (idx, q)
+        for idx, q in enumerate(MOCK_QUESTIONS)
+        if q["type"] in allowed_types and q.get("content_category") in active_categories
+    ]
+
+    if not candidates:
+        return [], seen_indices
+
+    unseen = [(idx, q) for idx, q in candidates if idx not in seen_indices]
+    if not unseen:
+        seen_indices = set()
+        unseen = candidates
+
+    random.shuffle(unseen)
+    unseen = unseen[:5]
+    selected = [q for _, q in unseen]
+    new_seen = seen_indices | {idx for idx, _ in unseen}
+    return selected, new_seen
 
 
 def mock_save_context(
@@ -118,9 +373,15 @@ class LearnPanelApp(Container):
 
     # ── lifecycle ────────────────────────────────────────────────────
 
-    def __init__(self) -> None:
+    def __init__(self, config: "VibeConfig") -> None:
         super().__init__(id="learnpanel-app")
-        self._questions = mock_ask_questions()
+        self._config = config
+        self._seen_question_indices: set[int] = set()
+        self._questions, self._seen_question_indices = mock_ask_questions(
+            questions_format=self._config.learn_questions_format,
+            active_categories=self._active_categories(),
+            seen_indices=self._seen_question_indices,
+        )
         self._question_idx = 0
         self._phase = Phase.ASKING
         self._user_answer: str = ""
@@ -135,6 +396,19 @@ class LearnPanelApp(Container):
         self._feedback_widget: NoMarkupStatic | None = None
         self._validation_option_widgets: list[NoMarkupStatic] = []
         self._help_widget: NoMarkupStatic | None = None
+
+    # ── helpers ──────────────────────────────────────────────────────
+
+    def _active_categories(self) -> set[str]:
+        """Return active content category strings based on current config."""
+        categories: set[str] = set()
+        if self._config.learn_content_codebase:
+            categories.add("codebase")
+        if self._config.learn_content_coding_patterns:
+            categories.add("coding_patterns")
+        if self._config.learn_content_current_tasks:
+            categories.add("current_tasks")
+        return categories
 
     # ── properties ───────────────────────────────────────────────────
 
@@ -199,12 +473,28 @@ class LearnPanelApp(Container):
 
     # ── rendering ────────────────────────────────────────────────────
 
+    def _render_empty(self) -> None:
+        if self._question_widget:
+            self._question_widget.update(
+                "No questions to display. Change settings with /learn"
+            )
+        self._hide_mc_options()
+        self._hide_input()
+        self._hide_feedback()
+        self._hide_validation_options()
+        if self._help_widget:
+            self._help_widget.update("ESC close")
+
     def _update_display(self) -> None:
         if self._phase == Phase.SUMMARY:
             self._render_summary()
             return
         if self._phase == Phase.REVIEWING:
             self._render_review()
+            return
+
+        if not self._questions:
+            self._render_empty()
             return
 
         q = self._current_q
@@ -447,6 +737,8 @@ class LearnPanelApp(Container):
     # ── navigation ───────────────────────────────────────────────────
 
     def _watch_selected_option(self) -> None:
+        if not self._questions:
+            return
         if self._phase == Phase.ASKING and self._is_mc:
             self._show_mc_options()
         elif self._phase == Phase.VALIDATING and not self._is_mc:
@@ -556,8 +848,12 @@ class LearnPanelApp(Container):
         self._update_display()
 
     def _start_new_session(self) -> None:
-        """Reset everything and start a fresh set of questions."""
-        self._questions = mock_ask_questions()
+        """Reset quiz state and pick a fresh, non-repeating set of questions."""
+        self._questions, self._seen_question_indices = mock_ask_questions(
+            questions_format=self._config.learn_questions_format,
+            active_categories=self._active_categories(),
+            seen_indices=self._seen_question_indices,
+        )
         self._question_idx = 0
         self._phase = Phase.ASKING
         self._user_answer = ""
