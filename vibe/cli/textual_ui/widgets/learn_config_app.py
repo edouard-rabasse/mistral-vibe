@@ -46,8 +46,8 @@ _CONTENT_CHILDREN: list[SettingDefinition] = [
     },
 ]
 
-# Max visible rows: 4 top-level + 3 children = 7
-_MAX_ROWS = 7
+# Max visible rows: 5 top-level + 3 children = 8
+_MAX_ROWS = 8
 
 
 class LearnConfigApp(Container):
@@ -65,6 +65,9 @@ class LearnConfigApp(Container):
         def __init__(self, changes: dict[str, str | bool]) -> None:
             super().__init__()
             self.changes = changes
+
+    class ViewMemoryStatsRequested(Message):
+        """Posted when the user activates the 'View memory stats' action."""
 
     def __init__(self, config: VibeConfig) -> None:
         super().__init__(id="learnconfig-app")
@@ -95,6 +98,12 @@ class LearnConfigApp(Container):
             {
                 "key": "_update_user_memory",
                 "label": "Update user memory",
+                "type": "action",
+                "options": [],
+            },
+            {
+                "key": "_view_memory_stats",
+                "label": "View memory stats",
                 "type": "action",
                 "options": [],
             },
@@ -255,6 +264,8 @@ class LearnConfigApp(Container):
                 subprocess.Popen(["start", str(memory_file)], shell=True)
             else:
                 subprocess.Popen(["xdg-open", str(memory_file)])
+        elif setting["key"] == "_view_memory_stats":
+            self.post_message(self.ViewMemoryStatsRequested())
 
     def _cycle_setting(self, setting: SettingDefinition) -> None:
         key: str = setting["key"]

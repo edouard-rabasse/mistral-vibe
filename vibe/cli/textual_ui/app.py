@@ -66,6 +66,7 @@ from vibe.cli.textual_ui.widgets.question_app import QuestionApp
 from vibe.cli.textual_ui.widgets.session_picker import SessionPickerApp
 from vibe.cli.textual_ui.widgets.teleport_message import TeleportMessage
 from vibe.cli.textual_ui.widgets.tools import ToolResultMessage
+from vibe.cli.textual_ui.widgets.user_memory_stats_app import UserMemoryStatsApp
 from vibe.cli.textual_ui.windowing import (
     HISTORY_RESUME_TAIL_MESSAGES,
     LOAD_MORE_BATCH_SIZE,
@@ -148,6 +149,7 @@ class BottomApp(StrEnum):
     ProxySetup = auto()
     Question = auto()
     SessionPicker = auto()
+    UserMemoryStats = auto()
 
 
 class ChatScroll(VerticalScroll):
@@ -1293,8 +1295,7 @@ class VibeApp(App):  # noqa: PLR0904
         )
 
         learn_agent_loop = AgentLoop(
-            config=learn_config,
-            agent_name=BuiltinAgentName.LEARN,
+            config=learn_config, agent_name=BuiltinAgentName.LEARN
         )
         self._learn_agent_loop = learn_agent_loop
 
@@ -1399,7 +1400,9 @@ class VibeApp(App):  # noqa: PLR0904
             if not content.strip():
                 # For assistant messages with tool calls, summarize the tool usage
                 if msg.tool_calls:
-                    tool_names = [tc.function.name for tc in msg.tool_calls if tc.function]
+                    tool_names = [
+                        tc.function.name for tc in msg.tool_calls if tc.function
+                    ]
                     content = f"[called tools: {', '.join(tool_names)}]"
                 else:
                     continue
@@ -1458,7 +1461,7 @@ class VibeApp(App):  # noqa: PLR0904
             )
             # Include recent questions to avoid repetition
             for q in stats["questions"][-3:]:
-                lines.append(f"  - Already asked: \"{q}\"")
+                lines.append(f'  - Already asked: "{q}"')
 
         return "\n".join(lines)
 
@@ -1521,6 +1524,8 @@ class VibeApp(App):  # noqa: PLR0904
                     self.query_one(SessionPickerApp).focus()
                 case BottomApp.LearnPanel:
                     self.query_one(LearnPanelApp).focus()
+                case BottomApp.UserMemoryStats:
+                    self.query_one(UserMemoryStatsApp).focus()
                 case app:
                     assert_never(app)
         except Exception:
@@ -1594,6 +1599,14 @@ class VibeApp(App):  # noqa: PLR0904
         if self._current_bottom_app == BottomApp.LearnPanel:
             try:
                 self.query_one(LearnPanelApp).action_close()
+            except Exception:
+                pass
+            self._last_escape_time = None
+            return
+
+        if self._current_bottom_app == BottomApp.UserMemoryStats:
+            try:
+                self.query_one(UserMemoryStatsApp).action_close()
             except Exception:
                 pass
             self._last_escape_time = None

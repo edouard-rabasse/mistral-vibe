@@ -672,6 +672,25 @@ StatusMessage {
     height: auto;
 }
 
+#usermemorystats-app {
+    width: 100%;
+    height: auto;
+    background: transparent;
+    border: solid ansi_bright_black;
+    padding: 0 1;
+    margin: 0;
+}
+
+#usermemorystats-content {
+    width: 100%;
+    height: auto;
+}
+
+.stats-line {
+    height: auto;
+    color: ansi_default;
+}
+
 #learnpanel-app {
     width: 100%;
     height: auto;
