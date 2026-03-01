@@ -381,7 +381,7 @@ def _append_to_usermemory(
         "answered_at": datetime.now().isoformat(timespec="seconds"),
     })
 
-    memory_file.write_text(yaml.dump(data, default_flow_style=False, allow_unicode=True))
+    memory_file.write_text(yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False))
 
 
 def mock_save_context(
