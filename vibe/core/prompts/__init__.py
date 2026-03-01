@@ -21,6 +21,7 @@ class SystemPrompt(Prompt):
     CLI = auto()
     EXPLORE = auto()
     TESTS = auto()
+    QUESTION_GENERATOR = auto()
 
 
 class UtilityPrompt(Prompt):

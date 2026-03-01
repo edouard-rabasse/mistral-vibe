@@ -174,6 +174,14 @@ class AgentLoop:
         self.message_observer = message_observer
         self.enable_streaming = enable_streaming
         self.learn_mode = False
+        self.questions_file = Path("questions.md")
+        self.question_prompt = (
+            "Generate one educational question about the code modifications made "
+            "and provide a concise answer. "
+            "Format your response exactly as:\n"
+            "<Question> [your question here]\n"
+            "<Answer> [your answer here]"
+        )
         self.middleware_pipeline = MiddlewarePipeline()
         self._setup_middleware()
 
@@ -294,37 +302,21 @@ class AgentLoop:
             return
 
         context = "\n".join(context_parts[-10:])
-        prompt_messages = [
-            LLMMessage(
-                role=Role.user,
-                content=(
-                    f"Based on this conversation:\n\n{context}\n\n"
-                    "Generate one educational question about the code modifications made "
-                    "and provide a concise answer. "
-                    "Format your response exactly as:\n"
-                    "<Question> [your question here]\n"
-                    "<Answer> [your answer here]"
-                ),
-            )
-        ]
+        task = f"Based on this conversation:\n\n{context}\n\n{self.question_prompt}"
 
-        active_model = self.config.get_active_model()
-        provider = self.config.get_provider_for_model(active_model)
         try:
-            result = await self.backend.complete(
-                model=active_model,
-                messages=prompt_messages,
-                temperature=active_model.temperature,
-                tools=None,
-                tool_choice=None,
-                extra_headers=self._get_extra_headers(provider),
-                max_tokens=500,
-                metadata=None,
+            subagent = AgentLoop(
+                config=self._base_config,
+                agent_name=BuiltinAgentName.QUESTION_GENERATOR,
+                entrypoint_metadata=self.entrypoint_metadata,
             )
-            question_content = result.message.content or ""
+            question_content = ""
+            async for event in subagent.act(task):
+                if isinstance(event, AssistantEvent):
+                    question_content += event.content or ""
             if not question_content:
                 return
-            questions_file = Path("questions.md")
+            questions_file = self.questions_file
             existing = questions_file.read_text(encoding="utf-8") if questions_file.exists() else ""
             separator = "\n\n" if existing else ""
             questions_file.write_text(
