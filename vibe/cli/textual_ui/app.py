@@ -873,6 +873,11 @@ class VibeApp(App):  # noqa: PLR0904
         help_text = self.commands.get_help_text()
         await self._mount_and_scroll(UserCommandMessage(help_text))
 
+    async def _toggle_learn_mode(self) -> None:
+        self.agent_loop.learn_mode = not self.agent_loop.learn_mode
+        state = "**enabled** — questions will be written to `questions.md` after each turn" if self.agent_loop.learn_mode else "**disabled**"
+        await self._mount_and_scroll(UserCommandMessage(f"Learn mode {state}."))
+
     async def _show_status(self) -> None:
         stats = self.agent_loop.stats
         status_text = f"""## Agent Statistics

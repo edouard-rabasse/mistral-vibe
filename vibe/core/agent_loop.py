@@ -173,6 +173,7 @@ class AgentLoop:
 
         self.message_observer = message_observer
         self.enable_streaming = enable_streaming
+        self.learn_mode = False
         self.middleware_pipeline = MiddlewarePipeline()
         self._setup_middleware()
 
@@ -278,6 +279,59 @@ class AgentLoop:
         self._clean_message_history()
         async for event in self._conversation_loop(msg):
             yield event
+        if self.learn_mode:
+            await self._write_question_to_file()
+
+    async def _write_question_to_file(self) -> None:
+        """Generate a question about the conversation's modifications and append to questions.md."""
+        context_parts: list[str] = []
+        for m in self.messages:
+            if m.role == Role.user and m.content:
+                context_parts.append(f"User: {m.content}")
+            elif m.role == Role.assistant and m.content:
+                context_parts.append(f"Assistant: {m.content}")
+        if not context_parts:
+            return
+
+        context = "\n".join(context_parts[-10:])
+        prompt_messages = [
+            LLMMessage(
+                role=Role.user,
+                content=(
+                    f"Based on this conversation:\n\n{context}\n\n"
+                    "Generate one educational question about the code modifications made "
+                    "and provide a concise answer. "
+                    "Format your response exactly as:\n"
+                    "<Question> [your question here]\n"
+                    "<Answer> [your answer here]"
+                ),
+            )
+        ]
+
+        active_model = self.config.get_active_model()
+        provider = self.config.get_provider_for_model(active_model)
+        try:
+            result = await self.backend.complete(
+                model=active_model,
+                messages=prompt_messages,
+                temperature=active_model.temperature,
+                tools=None,
+                tool_choice=None,
+                extra_headers=self._get_extra_headers(provider),
+                max_tokens=500,
+                metadata=None,
+            )
+            question_content = result.message.content or ""
+            if not question_content:
+                return
+            questions_file = Path("questions.md")
+            existing = questions_file.read_text(encoding="utf-8") if questions_file.exists() else ""
+            separator = "\n\n" if existing else ""
+            questions_file.write_text(
+                existing + separator + question_content, encoding="utf-8"
+            )
+        except Exception:
+            pass
 
     @property
     def teleport_service(self) -> TeleportService:
