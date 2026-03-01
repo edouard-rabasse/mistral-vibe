@@ -729,10 +729,13 @@ class LearnPanelApp(Container):
     def _update_help_validating(self) -> None:
         if not self._help_widget:
             return
+        is_last = len(self._answered) == len(self._questions) - 1
         if self._is_mc:
-            self._help_widget.update("Enter next question  ESC close")
+            enter_label = "Enter summary" if is_last else "Enter next question"
+            self._help_widget.update(f"{enter_label}  ESC close")
         else:
-            self._help_widget.update("Up/Down select  Enter confirm  ESC close")
+            enter_label = "Enter summary" if is_last else "Enter confirm"
+            self._help_widget.update(f"Up/Down select  {enter_label}  ESC close")
 
     # ── navigation ───────────────────────────────────────────────────
 
@@ -873,13 +876,19 @@ class LearnPanelApp(Container):
         target = self._question_idx + direction
 
         if self._phase == Phase.SUMMARY:
-            # From summary, go to the nearest answered question in the given direction
+            # From summary, only left arrow enters review (starting from last question)
             if direction < 0:
                 target = len(self._questions) - 1
             else:
-                target = 0
+                return
 
-        if target < 0 or target >= len(self._questions):
+        if target < 0:
+            return
+
+        # Right arrow past the last question goes back to summary
+        if target >= len(self._questions):
+            if direction > 0 and self._phase == Phase.REVIEWING:
+                self._go_to_summary()
             return
 
         if target in self._answered:
