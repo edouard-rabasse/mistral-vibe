@@ -5,6 +5,8 @@ from enum import StrEnum, auto
 import os
 from pathlib import Path
 import signal
+
+import yaml
 import subprocess
 import time
 from typing import Any, ClassVar, assert_never, cast
@@ -1234,7 +1236,9 @@ class VibeApp(App):  # noqa: PLR0904
         memory_file = vibe_dir / "usermemory.yaml"
         if not memory_file.exists():
             vibe_dir.mkdir(exist_ok=True)
-            memory_file.touch()
+            memory_file.write_text(
+                yaml.dump({"learned_skills": []}, default_flow_style=False)
+            )
 
         await self._switch_from_input(LearnPanelApp(config=self.config))
 

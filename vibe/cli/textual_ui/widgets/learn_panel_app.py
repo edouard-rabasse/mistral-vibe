@@ -3,7 +3,11 @@ from __future__ import annotations
 import enum
 import logging
 import random
+from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Self
+
+import yaml
 
 if TYPE_CHECKING:
     from vibe.core.config import VibeConfig
@@ -352,6 +356,32 @@ def mock_ask_questions(
     selected = [q for _, q in unseen]
     new_seen = seen_indices | {idx for idx, _ in unseen}
     return selected, new_seen
+
+
+def _append_to_usermemory(
+    skill: str,
+    difficulty: str,
+    question: str,
+    answer: str,
+) -> None:
+    """Append a correctly answered skill entry to .vibe/usermemory.yaml."""
+    memory_file = Path.cwd() / ".vibe" / "usermemory.yaml"
+    if not memory_file.exists():
+        return
+
+    data = yaml.safe_load(memory_file.read_text()) or {}
+    if "learned_skills" not in data:
+        data["learned_skills"] = []
+
+    data["learned_skills"].append({
+        "skill": skill,
+        "difficulty": difficulty,
+        "question": question,
+        "answer": answer,
+        "answered_at": datetime.now().isoformat(timespec="seconds"),
+    })
+
+    memory_file.write_text(yaml.dump(data, default_flow_style=False, allow_unicode=True))
 
 
 def mock_save_context(
@@ -894,6 +924,14 @@ class LearnPanelApp(Container):
             skill=self._current_q.skill,
             difficulty=self._current_q.difficulty,
         )
+
+        if was_correct:
+            _append_to_usermemory(
+                skill=self._current_q.skill,
+                difficulty=self._current_q.difficulty,
+                question=self._q_text,
+                answer=self._correct_answer,
+            )
 
         self._answered[self._question_idx] = (self._user_answer, was_correct)
 
