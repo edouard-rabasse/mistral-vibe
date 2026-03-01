@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
+from datetime import date, timedelta
 from pathlib import Path
 from typing import ClassVar
 
 from textual import events
 from textual.app import ComposeResult
-from textual.binding import BindingType
+from textual.binding import Binding, BindingType
 from textual.containers import Container, Vertical
 from textual.message import Message
 import yaml
 
 from vibe.cli.textual_ui.widgets.no_markup_static import NoMarkupStatic
 
-_MAX_STAT_ROWS = 8
+_MAX_STAT_ROWS = 18
+_DAYS_SHOWN = 7
+_MAX_BAR_WIDTH = 12
 
 
 class UserMemoryStatsApp(Container):
@@ -22,7 +25,10 @@ class UserMemoryStatsApp(Container):
     can_focus = True
     can_focus_children = False
 
-    BINDINGS: ClassVar[list[BindingType]] = []
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("left", "prev_week", "Prev week", show=False),
+        Binding("right", "next_week", "Next week", show=False),
+    ]
 
     class UserMemoryStatsClosed(Message):
         """Posted when the user dismisses the stats panel."""
@@ -30,6 +36,7 @@ class UserMemoryStatsApp(Container):
     def __init__(self) -> None:
         super().__init__(id="usermemorystats-app")
         self._stat_widgets: list[NoMarkupStatic] = []
+        self._week_offset: int = 0  # 0 = current week, 1 = one week back, etc.
 
     def _load_stats(self) -> list[str]:
         memory_file = Path.cwd() / ".vibe" / "usermemory.yaml"
@@ -64,6 +71,47 @@ class UserMemoryStatsApp(Container):
             f"{skill}: {count}" for skill, count in skill_counts.most_common()
         )
 
+        # Build daily counts across all entries
+        day_counts: dict[str, int] = defaultdict(int)
+        for entry in skills:
+            ts = entry.get("answered_at", "")
+            if ts:
+                try:
+                    day_counts[str(ts)[:10]] += 1
+                except Exception:
+                    pass
+
+        # Determine the 7-day window based on current offset
+        today = date.today()
+        end_day = today - timedelta(weeks=self._week_offset)
+        days = [
+            (end_day - timedelta(days=i)).isoformat()
+            for i in range(_DAYS_SHOWN - 1, -1, -1)
+        ]
+        max_count = max((day_counts.get(d, 0) for d in days), default=1) or 1
+
+        # Chart header with navigation hint
+        if self._week_offset == 0:
+            week_label = "this week"
+        elif self._week_offset == 1:
+            week_label = "last week"
+        else:
+            week_label = f"{self._week_offset} weeks ago"
+        nav_hint = "←" if self._week_offset < 52 else " "
+        nav_hint_right = "→" if self._week_offset > 0 else " "
+        chart_header = (
+            f"  Correct answers/day  {nav_hint_right} {week_label} {nav_hint}"
+        )
+
+        chart_lines: list[str] = [chart_header]
+        for day_str in days:
+            count = day_counts.get(day_str, 0)
+            bar_len = round(count / max_count * _MAX_BAR_WIDTH)
+            bar = "█" * bar_len if bar_len > 0 else "·"
+            month_day = day_str[5:].replace("-", "/")  # "MM/DD"
+            count_label = str(count) if count > 0 else ""
+            chart_lines.append(f"  {month_day} {bar} {count_label}".rstrip())
+
         return [
             f"  Correct answered:  {total}",
             "",
@@ -72,6 +120,8 @@ class UserMemoryStatsApp(Container):
             f"  Skills:  {skill_parts}",
             "",
             f"  Last activity:  {last_activity}",
+            "",
+            *chart_lines,
         ]
 
     def compose(self) -> ComposeResult:
@@ -83,9 +133,13 @@ class UserMemoryStatsApp(Container):
                 self._stat_widgets.append(widget)
                 yield widget
             yield NoMarkupStatic("")
-            yield NoMarkupStatic("ESC close", classes="settings-help")
+            yield NoMarkupStatic("← → weeks  ESC close", classes="settings-help")
 
     def on_mount(self) -> None:
+        self._refresh_display()
+        self.focus()
+
+    def _refresh_display(self) -> None:
         lines = self._load_stats()
         for i, widget in enumerate(self._stat_widgets):
             if i < len(lines):
@@ -94,7 +148,16 @@ class UserMemoryStatsApp(Container):
             else:
                 widget.update("")
                 widget.display = False
-        self.focus()
+
+    def action_prev_week(self) -> None:
+        if self._week_offset < 52:
+            self._week_offset += 1
+            self._refresh_display()
+
+    def action_next_week(self) -> None:
+        if self._week_offset > 0:
+            self._week_offset -= 1
+            self._refresh_display()
 
     def action_close(self) -> None:
         self.post_message(self.UserMemoryStatsClosed())
