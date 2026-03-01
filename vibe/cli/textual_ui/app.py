@@ -1268,6 +1268,39 @@ class VibeApp(App):  # noqa: PLR0904
         self._learn_agent_loop = None
         await self._switch_to_input_app()
 
+    async def _switch_to_user_memory_stats_app(self) -> None:
+        if self._current_bottom_app == BottomApp.UserMemoryStats:
+            return
+        # Remove LearnConfig directly without flashing through the input panel
+        try:
+            await self.query_one(LearnConfigApp).remove()
+        except Exception:
+            pass
+        bottom_container = self.query_one("#bottom-app-container")
+        widget = UserMemoryStatsApp()
+        self._current_bottom_app = BottomApp.UserMemoryStats
+        await bottom_container.mount(widget)
+        self.call_after_refresh(widget.focus)
+
+    async def on_learn_config_app_view_memory_stats_requested(
+        self, _: LearnConfigApp.ViewMemoryStatsRequested
+    ) -> None:
+        await self._switch_to_user_memory_stats_app()
+
+    async def on_user_memory_stats_app_user_memory_stats_closed(
+        self, _: UserMemoryStatsApp.UserMemoryStatsClosed
+    ) -> None:
+        # Remove stats panel and restore LearnConfig without scroll noise
+        try:
+            await self.query_one(UserMemoryStatsApp).remove()
+        except Exception:
+            pass
+        bottom_container = self.query_one("#bottom-app-container")
+        widget = LearnConfigApp(self.config)
+        self._current_bottom_app = BottomApp.LearnConfig
+        await bottom_container.mount(widget)
+        self.call_after_refresh(widget.focus)
+
     async def on_learn_panel_app_new_session_requested(
         self, _: LearnPanelApp.NewSessionRequested
     ) -> None:
