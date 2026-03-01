@@ -1341,12 +1341,109 @@ class VibeApp(App):  # noqa: PLR0904
             f"- Content categories: {', '.join(categories)}\n"
         )
 
+        # Add conversation context from the main agent
+        conversation_summary = self._extract_conversation_summary()
+        if conversation_summary:
+            message += (
+                f"\n## Recent Conversation Context\n"
+                f"The user has been working on the following (from the main coding session):\n"
+                f"{conversation_summary}\n"
+            )
+
+        # Add user learning history from usermemory.yaml
+        usermemory_context = self._load_usermemory_context()
+        if usermemory_context:
+            message += (
+                f"\n## User Learning History\n"
+                f"Previously answered questions and skill levels:\n"
+                f"{usermemory_context}\n"
+            )
+
         try:
             async for _event in learn_agent_loop.act(message):
                 pass  # The agent communicates via tool calls, not chat output
         except Exception as e:
             logger.exception("Learn agent failed")
             learn_panel.set_error(f"Failed to generate questions: {e}")
+
+    def _extract_conversation_summary(self, max_messages: int = 30) -> str:
+        """Extract a summary of recent conversation from the main agent loop."""
+        messages = self.agent_loop.messages
+        if len(messages) <= 1:  # only system message
+            return ""
+
+        lines: list[str] = []
+        # Take the last N non-system messages
+        recent = list(messages)[-max_messages:]
+        for msg in recent:
+            if msg.role == Role.system:
+                continue
+            content = msg.content or ""
+            if not content.strip():
+                # For assistant messages with tool calls, summarize the tool usage
+                if msg.tool_calls:
+                    tool_names = [tc.function.name for tc in msg.tool_calls if tc.function]
+                    content = f"[called tools: {', '.join(tool_names)}]"
+                else:
+                    continue
+
+            # Truncate long messages
+            if len(content) > 500:
+                content = content[:500] + "..."
+
+            lines.append(f"- {msg.role}: {content}")
+
+        return "\n".join(lines) if lines else ""
+
+    def _load_usermemory_context(self) -> str:
+        """Load and format the user's learning history from .vibe/usermemory.yaml."""
+        memory_file = Path.cwd() / ".vibe" / "usermemory.yaml"
+        if not memory_file.exists():
+            return ""
+
+        try:
+            data = yaml.safe_load(memory_file.read_text()) or {}
+        except Exception:
+            logger.debug("Failed to read usermemory.yaml", exc_info=True)
+            return ""
+
+        skills = data.get("learned_skills", [])
+        if not skills:
+            return ""
+
+        # Build a per-skill summary: track correct/incorrect counts and difficulties
+        skill_stats: dict[str, dict] = {}
+        for entry in skills:
+            skill = entry.get("skill", "unknown")
+            if skill not in skill_stats:
+                skill_stats[skill] = {
+                    "correct": 0,
+                    "incorrect": 0,
+                    "difficulties_seen": set(),
+                    "questions": [],
+                }
+            stats = skill_stats[skill]
+            if entry.get("was_correct"):
+                stats["correct"] += 1
+            else:
+                stats["incorrect"] += 1
+            stats["difficulties_seen"].add(entry.get("difficulty", "unknown"))
+            stats["questions"].append(entry.get("question", ""))
+
+        lines: list[str] = []
+        for skill, stats in skill_stats.items():
+            total = stats["correct"] + stats["incorrect"]
+            difficulties = ", ".join(sorted(stats["difficulties_seen"]))
+            lines.append(
+                f"- Skill: {skill} | "
+                f"{stats['correct']}/{total} correct | "
+                f"difficulties seen: {difficulties}"
+            )
+            # Include recent questions to avoid repetition
+            for q in stats["questions"][-3:]:
+                lines.append(f"  - Already asked: \"{q}\"")
+
+        return "\n".join(lines)
 
     async def _switch_to_input_app(self) -> None:
         # If the learn panel was paused underneath an agent panel, resume it
