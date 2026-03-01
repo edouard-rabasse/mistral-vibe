@@ -706,6 +706,45 @@ StatusMessage {
     color: ansi_bright_black;
 }
 
+.learnpanel-question {
+    height: auto;
+    color: ansi_blue;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.learnpanel-option {
+    height: auto;
+    color: ansi_default;
+}
+
+.learnpanel-option-selected {
+    color: ansi_blue;
+    text-style: bold;
+}
+
+.learnpanel-correct {
+    color: ansi_green;
+
+    &.learnpanel-option-selected {
+        text-style: bold;
+    }
+}
+
+.learnpanel-incorrect {
+    color: ansi_red;
+
+    &.learnpanel-option-selected {
+        text-style: bold;
+    }
+}
+
+.learnpanel-feedback {
+    height: auto;
+    color: ansi_bright_black;
+    margin-top: 1;
+}
+
 .settings-title {
     height: auto;
     text-style: bold;
