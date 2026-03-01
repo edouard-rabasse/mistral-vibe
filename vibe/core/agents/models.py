@@ -39,6 +39,7 @@ class BuiltinAgentName(StrEnum):
     ACCEPT_EDITS = "accept-edits"
     AUTO_APPROVE = "auto-approve"
     EXPLORE = "explore"
+    LEARN = "learn"
 
 
 @dataclass(frozen=True)
@@ -122,10 +123,28 @@ EXPLORE = AgentProfile(
     overrides={"enabled_tools": ["grep", "read_file"], "system_prompt_id": "explore"},
 )
 
+LEARN = AgentProfile(
+    name=BuiltinAgentName.LEARN,
+    display_name="Learn",
+    description="Subagent for generating quiz questions during learn sessions",
+    safety=AgentSafety.SAFE,
+    agent_type=AgentType.SUBAGENT,
+    overrides={
+        "auto_approve": True,
+        "enabled_tools": ["learn_ask_question", "learn_save_context"],
+        "system_prompt_id": "learn",
+        "include_prompt_detail": False,
+        "include_project_context": True,
+        "include_model_info": False,
+        "include_commit_signature": False,
+    },
+)
+
 BUILTIN_AGENTS: dict[str, AgentProfile] = {
     BuiltinAgentName.DEFAULT: DEFAULT,
     BuiltinAgentName.PLAN: PLAN,
     BuiltinAgentName.ACCEPT_EDITS: ACCEPT_EDITS,
     BuiltinAgentName.AUTO_APPROVE: AUTO_APPROVE,
     BuiltinAgentName.EXPLORE: EXPLORE,
+    BuiltinAgentName.LEARN: LEARN,
 }

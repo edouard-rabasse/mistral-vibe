@@ -44,7 +44,7 @@ class OpenEndedQuestion(BaseModel):
 class LearnQuestion(BaseModel):
     multiple_choice: MultipleChoiceQuestion | None = None
     open_ended: OpenEndedQuestion | None = None
-    skill: str  # ex: "git", "python", "design_patterns"
+    skill: str  # ex: "⁠memory_pruning", "⁠retrieval_design", "parallel_agent_design", "context_summarization"
     difficulty: Difficulty  # "easy", "medium", "hard"
 
     @model_validator(mode="after")

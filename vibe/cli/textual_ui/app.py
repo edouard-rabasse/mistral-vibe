@@ -114,6 +114,10 @@ from vibe.core.tools.builtins.ask_user_question import (
     Choice,
     Question,
 )
+from vibe.core.tools.builtins.learn_ask_question import (
+    LearnAskQuestionArgs,
+    LearnAskQuestionResult,
+)
 from vibe.core.types import (
     AgentStats,
     ApprovalResponse,
@@ -243,6 +247,8 @@ class VibeApp(App):  # noqa: PLR0904
         self._loading_widget: LoadingWidget | None = None
         self._pending_approval: asyncio.Future | None = None
         self._pending_question: asyncio.Future | None = None
+        self._learn_agent_loop: AgentLoop | None = None
+        self._resolve_learn_future: Any = None
 
         self.event_handler: EventHandler | None = None
 
@@ -1243,7 +1249,7 @@ class VibeApp(App):  # noqa: PLR0904
         if self._current_bottom_app == BottomApp.LearnPanel:
             return
 
-        # Creer .vibe/usermemory.yaml au premier usage
+        # Create .vibe/usermemory.yaml on first use
         vibe_dir = Path.cwd() / ".vibe"
         memory_file = vibe_dir / "usermemory.yaml"
         if not memory_file.exists():
@@ -1252,10 +1258,95 @@ class VibeApp(App):  # noqa: PLR0904
                 yaml.dump({"learned_skills": []}, default_flow_style=False)
             )
 
-        await self._switch_from_input(LearnPanelApp(config=self.config))
+        learn_panel = LearnPanelApp(config=self.config)
+        await self._switch_from_input(learn_panel)
+        self.run_worker(self._run_learn_agent(learn_panel), exclusive=False)
 
     async def on_learn_panel_app_closed(self, _: LearnPanelApp.Closed) -> None:
+        self._learn_agent_loop = None
         await self._switch_to_input_app()
+
+    async def on_learn_panel_app_new_session_requested(
+        self, _: LearnPanelApp.NewSessionRequested
+    ) -> None:
+        """Relaunch the learn agent when the user requests a new session."""
+        try:
+            learn_panel = self.query_one(LearnPanelApp)
+        except Exception:
+            return
+        self.run_worker(self._run_learn_agent(learn_panel), exclusive=False)
+
+    def on_learn_panel_app_question_answered(
+        self, message: LearnPanelApp.QuestionAnswered
+    ) -> None:
+        """Resolve the learn agent's future with quiz results."""
+        if hasattr(self, "_resolve_learn_future") and self._resolve_learn_future:
+            self._resolve_learn_future(message.results)
+
+    async def _run_learn_agent(self, learn_panel: LearnPanelApp) -> None:
+        """Run the learn agent in the background to generate quiz questions."""
+        from vibe.core.agents.models import BuiltinAgentName
+
+        # Build a config with learn_model as the active model
+        learn_config = self.config.model_copy(
+            update={"active_model": self.config.learn_model}
+        )
+
+        learn_agent_loop = AgentLoop(
+            config=learn_config,
+            agent_name=BuiltinAgentName.LEARN,
+        )
+        self._learn_agent_loop = learn_agent_loop
+
+        # Set up a future-based callback for learn_ask_question tool calls
+        learn_question_future: asyncio.Future[LearnAskQuestionResult] | None = None
+
+        async def learn_user_input_callback(args: BaseModel) -> BaseModel:
+            nonlocal learn_question_future
+            question_args = cast(LearnAskQuestionArgs, args)
+
+            learn_question_future = asyncio.Future()
+
+            # Pass questions to the panel (same event loop)
+            learn_panel.set_questions(question_args.questions)
+
+            # Wait for the user to answer all questions
+            result = await learn_question_future
+            learn_question_future = None
+            return result
+
+        learn_agent_loop.set_user_input_callback(learn_user_input_callback)
+
+        def _resolve_learn_future(results: list) -> None:
+            nonlocal learn_question_future
+            if learn_question_future and not learn_question_future.done():
+                learn_question_future.set_result(
+                    LearnAskQuestionResult(results=results)
+                )
+
+        self._resolve_learn_future = _resolve_learn_future
+
+        # Build the user message with learn settings
+        categories = []
+        if self.config.learn_content_codebase:
+            categories.append("codebase")
+        if self.config.learn_content_coding_patterns:
+            categories.append("coding_patterns")
+        if self.config.learn_content_current_tasks:
+            categories.append("current_tasks")
+
+        message = (
+            f"Generate quiz questions with these settings:\n"
+            f"- Question format: {self.config.learn_questions_format}\n"
+            f"- Content categories: {', '.join(categories)}\n"
+        )
+
+        try:
+            async for _event in learn_agent_loop.act(message):
+                pass  # The agent communicates via tool calls, not chat output
+        except Exception as e:
+            logger.exception("Learn agent failed")
+            learn_panel.set_error(f"Failed to generate questions: {e}")
 
     async def _switch_to_input_app(self) -> None:
         # If the learn panel was paused underneath an agent panel, resume it
