@@ -27,6 +27,8 @@ class LearnSaveContextArgs(BaseModel):
     user_answer: str
     correct_answer: str
     was_correct: bool
+    skill: str
+    difficulty: str
 
 
 class LearnSaveContextResult(BaseModel):
@@ -59,10 +61,12 @@ class LearnSaveContext(
         self, args: LearnSaveContextArgs, ctx: InvokeContext | None = None
     ) -> AsyncGenerator[LearnSaveContextResult, None]:
         logger.debug(
-            "save_context: q=%r user=%r correct=%r ok=%s",
+            "save_context: q=%r user=%r correct=%r ok=%s skill=%r difficulty=%r",
             args.question,
             args.user_answer,
             args.correct_answer,
             args.was_correct,
+            args.skill,
+            args.difficulty,
         )
         yield LearnSaveContextResult(saved=True)

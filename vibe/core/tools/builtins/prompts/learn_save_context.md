@@ -11,6 +11,8 @@ Use `learn_save_context` after a learn quiz session completes to persist the lea
 - `user_answer`: The answer the user provided
 - `correct_answer`: The correct/reference answer
 - `was_correct`: Whether the user answered correctly
+- `skill`: The skill being tested (e.g. `"git"`, `"python"`, `"design_patterns"`)
+- `difficulty`: The difficulty level of the question (`"easy"`, `"medium"`, `"hard"`)
 
 ## Example
 
@@ -19,7 +21,9 @@ Use `learn_save_context` after a learn quiz session completes to persist the lea
   "question": "What does `git rebase` do?",
   "user_answer": "Replays commits on a new base",
   "correct_answer": "Replays commits on a new base",
-  "was_correct": true
+  "was_correct": true,
+  "skill": "git",
+  "difficulty": "easy"
 }
 ```
 

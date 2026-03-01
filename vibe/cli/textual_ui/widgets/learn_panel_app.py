@@ -355,15 +355,22 @@ def mock_ask_questions(
 
 
 def mock_save_context(
-    question: str, user_answer: str, correct_answer: str, was_correct: bool
+    question: str,
+    user_answer: str,
+    correct_answer: str,
+    was_correct: bool,
+    skill: str,
+    difficulty: str,
 ) -> None:
     """No-op mock -- would persist learning context in a real implementation."""
     logger.debug(
-        "save_context: q=%r user=%r correct=%r ok=%s",
+        "save_context: q=%r user=%r correct=%r ok=%s skill=%r difficulty=%r",
         question,
         user_answer,
         correct_answer,
         was_correct,
+        skill,
+        difficulty,
     )
 
 
@@ -884,6 +891,8 @@ class LearnPanelApp(Container):
             user_answer=self._user_answer,
             correct_answer=self._correct_answer,
             was_correct=was_correct,
+            skill=self._current_q.skill,
+            difficulty=self._current_q.difficulty,
         )
 
         self._answered[self._question_idx] = (self._user_answer, was_correct)
