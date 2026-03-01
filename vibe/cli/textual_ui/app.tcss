@@ -683,6 +683,7 @@ StatusMessage {
 
 #learnpanel-content {
     width: 100%;
+    min-height: 12;
     height: auto;
 }
 
