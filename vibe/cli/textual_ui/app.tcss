@@ -672,6 +672,40 @@ StatusMessage {
     height: auto;
 }
 
+#learnpanel-app {
+    width: 100%;
+    height: auto;
+    background: transparent;
+    border: solid ansi_blue;
+    padding: 0 1;
+    margin: 0;
+}
+
+#learnpanel-content {
+    width: 100%;
+    height: auto;
+}
+
+.learnpanel-header {
+    height: auto;
+    text-style: bold;
+    color: ansi_blue;
+}
+
+#learnpanel-input {
+    width: 100%;
+    height: auto;
+    background: transparent;
+    border: none;
+    border-left: wide ansi_blue;
+    padding: 0 0 0 1;
+}
+
+.learnpanel-help {
+    height: auto;
+    color: ansi_bright_black;
+}
+
 .settings-title {
     height: auto;
     text-style: bold;

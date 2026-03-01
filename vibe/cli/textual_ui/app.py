@@ -44,6 +44,7 @@ from vibe.cli.textual_ui.widgets.chat_input import ChatInputContainer
 from vibe.cli.textual_ui.widgets.compact import CompactMessage
 from vibe.cli.textual_ui.widgets.config_app import ConfigApp
 from vibe.cli.textual_ui.widgets.learn_config_app import LearnConfigApp
+from vibe.cli.textual_ui.widgets.learn_panel_app import LearnPanelApp
 from vibe.cli.textual_ui.widgets.context_progress import ContextProgress, TokenState
 from vibe.cli.textual_ui.widgets.load_more import HistoryLoadMoreRequested
 from vibe.cli.textual_ui.widgets.loading import LoadingWidget, paused_timer
@@ -212,6 +213,9 @@ class VibeApp(App):  # noqa: PLR0904
         Binding(
             "shift+down", "scroll_chat_down", "Scroll Down", show=False, priority=True
         ),
+        Binding(
+            "ctrl+l", "toggle_learn_panel", "Learn", show=False, priority=True
+        )
     ]
 
     def __init__(
@@ -1221,6 +1225,14 @@ class VibeApp(App):  # noqa: PLR0904
     async def _switch_to_question_app(self, args: AskUserQuestionArgs) -> None:
         await self._switch_from_input(QuestionApp(args=args), scroll=True)
 
+    async def _switch_to_learn_panel_app(self) -> None:
+        if self._current_bottom_app == BottomApp.LearnPanel:
+            return
+        await self._switch_from_input(LearnPanelApp())
+
+    async def on_learn_panel_app_closed(self, _: LearnPanelApp.Closed) -> None:
+        await self._switch_to_input_app()
+
     async def _switch_to_input_app(self) -> None:
         for app in BottomApp:
             if app != BottomApp.Input:
@@ -1323,6 +1335,14 @@ class VibeApp(App):  # noqa: PLR0904
 
         if self._current_bottom_app == BottomApp.LearnConfig:
             self._handle_learn_config_app_escape()
+            return
+
+        if self._current_bottom_app == BottomApp.LearnPanel:
+            try:
+                self.query_one(LearnPanelApp).action_close()
+            except Exception:
+                pass
+            self._last_escape_time = None
             return
 
         if self._current_bottom_app == BottomApp.ProxySetup:

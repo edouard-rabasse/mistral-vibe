@@ -109,6 +109,7 @@ class CommandRegistry:
             "- `Ctrl+C` Quit (or clear input if text present)",
             "- `Ctrl+G` Edit input in external editor",
             "- `Ctrl+O` Toggle tool output view",
+            "- `Ctrl+L` Toggle learning window",
             "- `Shift+Tab` Toggle auto-approve mode",
             "",
             "### Special Features",
