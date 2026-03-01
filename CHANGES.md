@@ -1,3 +1,7 @@
+# Instructions Hackathon:
+
+Pour run, après uv sync, fais uv run vibe
+
 # Changelog des modifications
 
 ## Résumé
@@ -15,10 +19,9 @@ Ajout d'un **mode apprentissage** (`/learn`) qui, lorsqu'il est activé, génèr
 **Modifications :**
 
 - **`__init__`** : Ajout de l'attribut `self.learn_mode = False`. Ce booléen détermine si le mode apprentissage est actif pour la session en cours.
-
 - **`act(msg)`** : Méthode principale appelée à chaque message utilisateur. Après la fin de la boucle de conversation (`_conversation_loop`), un appel conditionnel à `_write_question_to_file()` a été ajouté — il ne s'exécute que si `self.learn_mode` est `True`.
-
 - **`_write_question_to_file()`** *(nouvelle méthode)* : Après chaque tour de conversation, si le mode apprentissage est activé, cette méthode :
+
   1. Reconstruit un résumé textuel des derniers messages de la conversation (jusqu'à 10 messages).
   2. Effectue un appel LLM séparé et indépendant (sans modifier l'historique `self.messages`) pour demander au modèle de générer une question pédagogique et sa réponse, en lien avec les modifications effectuées.
   3. Écrit le résultat dans `questions.md` dans le répertoire courant, en ajoutant à la suite du fichier s'il existe déjà.
@@ -52,9 +55,9 @@ Ajout d'un **mode apprentissage** (`/learn`) qui, lorsqu'il est activé, génèr
 
 ## Comportement final
 
-| Action utilisateur | Résultat |
-|---|---|
-| `/learn` (mode désactivé) | Active le mode, affiche "Learn mode **enabled**…" |
-| `/learn` (mode activé) | Désactive le mode, affiche "Learn mode **disabled**" |
-| Message quelconque (mode activé) | L'agent répond normalement **ET** génère une Q&A dans `questions.md` |
-| Message quelconque (mode désactivé) | L'agent répond normalement, rien n'est écrit |
+| Action utilisateur                    | Résultat                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| `/learn` (mode désactivé)         | Active le mode, affiche "Learn mode**enabled**…"                        |
+| `/learn` (mode activé)             | Désactive le mode, affiche "Learn mode**disabled**"                     |
+| Message quelconque (mode activé)     | L'agent répond normalement**ET** génère une Q&A dans `questions.md` |
+| Message quelconque (mode désactivé) | L'agent répond normalement, rien n'est écrit                                 |
