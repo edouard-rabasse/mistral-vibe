@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import ClassVar, cast
+from typing import ClassVar, Literal, cast
+
+Difficulty = Literal["easy", "medium", "hard"]
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -42,6 +44,8 @@ class OpenEndedQuestion(BaseModel):
 class LearnQuestion(BaseModel):
     multiple_choice: MultipleChoiceQuestion | None = None
     open_ended: OpenEndedQuestion | None = None
+    skill: str  # ex: "git", "python", "design_patterns"
+    difficulty: Difficulty  # "easy", "medium", "hard"
 
     @model_validator(mode="after")
     def exactly_one_type(self) -> LearnQuestion:
@@ -68,6 +72,8 @@ class LearnQuestionResult(BaseModel):
     user_answer: str
     correct_answer: str
     was_correct: bool
+    skill: str
+    difficulty: str
 
 
 class LearnAskQuestionResult(BaseModel):

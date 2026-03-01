@@ -45,7 +45,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "Creates an annotated tag",
             ],
             correct_answer="Replays commits on a new base",
-        )),
+        ), skill="git", difficulty="easy"),
     ),
     (
         "codebase",
@@ -58,7 +58,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "git stash",
             ],
             correct_answer="git add .",
-        )),
+        ), skill="git", difficulty="easy"),
     ),
     (
         "codebase",
@@ -71,7 +71,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "Pushes the current branch to the remote",
             ],
             correct_answer="Applies the most recent stash and removes it from the stash list",
-        )),
+        ), skill="git", difficulty="medium"),
     ),
     (
         "codebase",
@@ -84,7 +84,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "It lists all public API symbols for external use",
             ],
             correct_answer="It marks a directory as a Python package",
-        )),
+        ), skill="python", difficulty="easy"),
     ),
     # ── codebase / open_ended ───────────────────────────────────────
     (
@@ -96,7 +96,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "the full history. `git rebase` rewrites history by replaying commits "
                 "on top of another branch, producing a linear history."
             ),
-        )),
+        ), skill="git", difficulty="medium"),
     ),
     (
         "codebase",
@@ -107,7 +107,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "not track. This commonly includes build artifacts, IDE settings, and "
                 "secrets such as `.env` files."
             ),
-        )),
+        ), skill="git", difficulty="easy"),
     ),
     (
         "codebase",
@@ -118,7 +118,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "onto the current branch. It is useful when you want to bring a specific "
                 "fix from one branch into another without merging the entire branch."
             ),
-        )),
+        ), skill="git", difficulty="hard"),
     ),
     # ── coding_patterns / multiple_choice ───────────────────────────
     (
@@ -132,7 +132,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "Pins a module's public API",
             ],
             correct_answer="Wraps a function to extend or modify its behavior",
-        )),
+        ), skill="python", difficulty="easy"),
     ),
     (
         "coding_patterns",
@@ -145,7 +145,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "Strategy",
             ],
             correct_answer="Singleton",
-        )),
+        ), skill="design_patterns", difficulty="easy"),
     ),
     (
         "coding_patterns",
@@ -158,7 +158,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "To automatically generate unit tests",
             ],
             correct_answer="To decouple a class from the creation of its dependencies",
-        )),
+        ), skill="design_patterns", difficulty="medium"),
     ),
     (
         "coding_patterns",
@@ -171,7 +171,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "Forces garbage collection before continuing",
             ],
             correct_answer="Suspends the current coroutine and yields control to the event loop",
-        )),
+        ), skill="async_programming", difficulty="medium"),
     ),
     # ── coding_patterns / open_ended ────────────────────────────────
     (
@@ -183,7 +183,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "to add behavior, and returns the wrapped function. Common use-cases include "
                 "logging, caching (e.g., `@lru_cache`), access control, and timing."
             ),
-        )),
+        ), skill="python", difficulty="medium"),
     ),
     (
         "coding_patterns",
@@ -194,7 +194,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "one at a time, suspending execution between calls. A regular function runs "
                 "to completion and returns a single value."
             ),
-        )),
+        ), skill="python", difficulty="medium"),
     ),
     (
         "coding_patterns",
@@ -205,7 +205,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "extension but closed for modification. You add new behavior by extending "
                 "(e.g., subclassing or composing) rather than changing existing code."
             ),
-        )),
+        ), skill="design_patterns", difficulty="hard"),
     ),
     # ── current_tasks / multiple_choice ─────────────────────────────
     (
@@ -219,7 +219,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "Screen",
             ],
             correct_answer="Container",
-        )),
+        ), skill="textual", difficulty="easy"),
     ),
     (
         "current_tasks",
@@ -232,7 +232,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "render",
             ],
             correct_answer="compose",
-        )),
+        ), skill="textual", difficulty="easy"),
     ),
     (
         "current_tasks",
@@ -245,7 +245,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "learn_format_setting",
             ],
             correct_answer="learn_questions_format",
-        )),
+        ), skill="project_config", difficulty="medium"),
     ),
     (
         "current_tasks",
@@ -258,7 +258,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "CSS class toggling",
             ],
             correct_answer="Automatic re-rendering when a value changes",
-        )),
+        ), skill="textual", difficulty="medium"),
     ),
     # ── current_tasks / open_ended ───────────────────────────────────
     (
@@ -272,7 +272,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "questions are shown), and REVIEWING (read-only playback of individual "
                 "answered questions from the summary)."
             ),
-        )),
+        ), skill="project_architecture", difficulty="hard"),
     ),
     (
         "current_tasks",
@@ -283,7 +283,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "Tracking ensures the user sees new questions each session and only cycles "
                 "back to earlier ones after the entire pool is exhausted."
             ),
-        )),
+        ), skill="project_architecture", difficulty="medium"),
     ),
     (
         "current_tasks",
@@ -294,7 +294,7 @@ MOCK_QUESTIONS: list[tuple[str, LearnQuestion]] = [
                 "new widget into the bottom container, updates `_current_bottom_app`, and "
                 "gives focus to the newly mounted widget."
             ),
-        )),
+        ), skill="textual", difficulty="hard"),
     ),
 ]
 
@@ -894,6 +894,8 @@ class LearnPanelApp(Container):
             user_answer=self._user_answer,
             correct_answer=self._correct_answer,
             was_correct=was_correct,
+            skill=self._current_q.skill,
+            difficulty=self._current_q.difficulty,
         ))
 
         if self._all_answered:

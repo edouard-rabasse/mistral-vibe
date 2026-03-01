@@ -12,6 +12,10 @@ Each `LearnQuestion` must contain **exactly one** of:
 - `multiple_choice`: A question with 2-4 choices and a `correct_answer` that must be one of the choices
 - `open_ended`: A question with a reference `answer` for self-evaluation
 
+Each question also requires:
+- `skill`: A free-form string describing the competency being tested (e.g. `"git"`, `"python"`, `"design_patterns"`, `"async_programming"`)
+- `difficulty`: One of `"easy"`, `"medium"`, or `"hard"`
+
 ```json
 {
   "questions": [
@@ -24,13 +28,17 @@ Each `LearnQuestion` must contain **exactly one** of:
           "Permanently deletes a branch"
         ],
         "correct_answer": "Replays commits on a new base"
-      }
+      },
+      "skill": "git",
+      "difficulty": "easy"
     },
     {
       "open_ended": {
         "question": "Explain the purpose of a `.gitignore` file.",
         "answer": "A .gitignore file tells Git which files or directories to ignore and not track."
-      }
+      },
+      "skill": "git",
+      "difficulty": "easy"
     }
   ]
 }
@@ -42,6 +50,8 @@ Each `LearnQuestion` must contain **exactly one** of:
 - **MC choices**: 2-4 per question
 - **MC correct_answer**: Must exactly match one of the `choices` strings
 - **Exactly one type**: Each `LearnQuestion` must set either `multiple_choice` or `open_ended`, not both
+- **skill**: Free-form string describing the competency tested
+- **difficulty**: Must be one of `"easy"`, `"medium"`, `"hard"`
 
 ## Tips
 
