@@ -5,8 +5,6 @@ from enum import StrEnum, auto
 import os
 from pathlib import Path
 import signal
-
-import yaml
 import subprocess
 import time
 from typing import Any, ClassVar, assert_never, cast
@@ -21,6 +19,7 @@ from textual.driver import Driver
 from textual.events import AppBlur, AppFocus, MouseUp
 from textual.widget import Widget
 from textual.widgets import Static
+import yaml
 
 from vibe import __version__ as CORE_VERSION
 from vibe.cli.clipboard import copy_selection_to_clipboard
@@ -45,9 +44,9 @@ from vibe.cli.textual_ui.widgets.banner.banner import Banner
 from vibe.cli.textual_ui.widgets.chat_input import ChatInputContainer
 from vibe.cli.textual_ui.widgets.compact import CompactMessage
 from vibe.cli.textual_ui.widgets.config_app import ConfigApp
+from vibe.cli.textual_ui.widgets.context_progress import ContextProgress, TokenState
 from vibe.cli.textual_ui.widgets.learn_config_app import LearnConfigApp
 from vibe.cli.textual_ui.widgets.learn_panel_app import LearnPanelApp
-from vibe.cli.textual_ui.widgets.context_progress import ContextProgress, TokenState
 from vibe.cli.textual_ui.widgets.load_more import HistoryLoadMoreRequested
 from vibe.cli.textual_ui.widgets.loading import LoadingWidget, paused_timer
 from vibe.cli.textual_ui.widgets.messages import (
@@ -215,9 +214,7 @@ class VibeApp(App):  # noqa: PLR0904
         Binding(
             "shift+down", "scroll_chat_down", "Scroll Down", show=False, priority=True
         ),
-        Binding(
-            "ctrl+l", "toggle_learn_panel", "Learn", show=False, priority=True
-        )
+        Binding("ctrl+l", "toggle_learn_panel", "Learn", show=False, priority=True),
     ]
 
     def __init__(
@@ -256,6 +253,7 @@ class VibeApp(App):  # noqa: PLR0904
 
         self._chat_input_container: ChatInputContainer | None = None
         self._current_bottom_app: BottomApp = BottomApp.Input
+        self._learn_panel_paused_underneath = False
 
         self.history_file = HISTORY_FILE.path
 
@@ -898,6 +896,9 @@ class VibeApp(App):  # noqa: PLR0904
     async def action_toggle_learn_panel(self) -> None:
         if self._current_bottom_app == BottomApp.LearnPanel:
             await self._switch_to_input_app()
+        elif self._learn_panel_paused_underneath:
+            # Learn panel is paused under an agent panel; ignore the toggle
+            return
         else:
             await self._switch_to_learn_panel_app()
 
@@ -1184,11 +1185,22 @@ class VibeApp(App):  # noqa: PLR0904
         chat = self._cached_chat or self.query_one("#chat", ChatScroll)
         should_scroll = scroll and chat.is_at_bottom
 
-        if self._chat_input_container:
+        new_app_type = BottomApp[type(widget).__name__.removesuffix("App")]
+        is_agent_panel = new_app_type in {BottomApp.Approval, BottomApp.Question}
+
+        if self._current_bottom_app == BottomApp.LearnPanel and is_agent_panel:
+            # Pause the learn panel instead of removing it; agent panel takes priority
+            try:
+                learn_panel = self.query_one(LearnPanelApp)
+                learn_panel.pause()
+                self._learn_panel_paused_underneath = True
+            except Exception:
+                pass
+        elif self._chat_input_container:
             self._chat_input_container.display = False
             self._chat_input_container.disabled = True
 
-        self._current_bottom_app = BottomApp[type(widget).__name__.removesuffix("App")]
+        self._current_bottom_app = new_app_type
         await bottom_container.mount(widget)
 
         self.call_after_refresh(widget.focus)
@@ -1246,6 +1258,29 @@ class VibeApp(App):  # noqa: PLR0904
         await self._switch_to_input_app()
 
     async def _switch_to_input_app(self) -> None:
+        # If the learn panel was paused underneath an agent panel, resume it
+        if self._learn_panel_paused_underneath:
+            # Remove only the agent panel (Approval / Question)
+            for app in (BottomApp.Approval, BottomApp.Question):
+                try:
+                    await self.query_one(f"#{app.value}-app").remove()
+                except Exception:
+                    pass
+
+            self._learn_panel_paused_underneath = False
+            self._current_bottom_app = BottomApp.LearnPanel
+
+            try:
+                learn_panel = self.query_one(LearnPanelApp)
+                learn_panel.resume()
+            except Exception:
+                pass
+
+            chat = self._cached_chat or self.query_one("#chat", ChatScroll)
+            if chat.is_at_bottom:
+                self.call_after_refresh(chat.anchor)
+            return
+
         for app in BottomApp:
             if app != BottomApp.Input:
                 try:
