@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, TypedDict
 
 from textual import events
@@ -43,8 +46,8 @@ _CONTENT_CHILDREN: list[SettingDefinition] = [
     },
 ]
 
-# Max visible rows: 3 top-level + 3 children = 6
-_MAX_ROWS = 6
+# Max visible rows: 4 top-level + 3 children = 7
+_MAX_ROWS = 7
 
 
 class LearnConfigApp(Container):
@@ -88,6 +91,12 @@ class LearnConfigApp(Container):
                 "label": "Model",
                 "type": "cycle",
                 "options": [m.alias for m in self.config.models],
+            },
+            {
+                "key": "_update_user_memory",
+                "label": "Update user memory",
+                "type": "action",
+                "options": [],
             },
         ]
 
@@ -185,6 +194,8 @@ class LearnConfigApp(Container):
                     arrow = "▼" if self._content_expanded else "▶"
                     summary = self._content_summary()
                     text = f"{cursor}{row['label']} {arrow}  {summary}"
+                elif row["type"] == "action":
+                    text = f"{cursor}{row['label']} →"
                 else:
                     value = self._get_display_value(row)
                     text = f"{cursor}{row['label']}: {value}"
@@ -225,7 +236,25 @@ class LearnConfigApp(Container):
             self._update_display()
             return
 
+        if row["type"] == "action":
+            self._handle_action(row)
+            return
+
         self._cycle_setting(row)
+
+    def _handle_action(self, setting: SettingDefinition) -> None:
+        if setting["key"] == "_update_user_memory":
+            vibe_dir = Path.cwd() / ".vibe"
+            memory_file = vibe_dir / "usermemory.yaml"
+            vibe_dir.mkdir(exist_ok=True)
+            if not memory_file.exists():
+                memory_file.touch()
+            if sys.platform == "darwin":
+                subprocess.Popen(["open", str(memory_file)])
+            elif sys.platform == "win32":
+                subprocess.Popen(["start", str(memory_file)], shell=True)
+            else:
+                subprocess.Popen(["xdg-open", str(memory_file)])
 
     def _cycle_setting(self, setting: SettingDefinition) -> None:
         key: str = setting["key"]
