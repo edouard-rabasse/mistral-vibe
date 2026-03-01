@@ -1010,6 +1010,68 @@ ContextProgress {
     margin-top: 1;
 }
 
+#learnpanel-app {
+    width: 100%;
+    height: auto;
+    background: transparent;
+    border: solid ansi_green;
+    padding: 0 1;
+    margin: 0;
+}
+
+#learnpanel-content {
+    width: 100%;
+    height: auto;
+}
+
+.learnpanel-header {
+    height: auto;
+    text-style: bold;
+    color: ansi_green;
+    margin-bottom: 1;
+}
+
+.learnpanel-question {
+    height: auto;
+    color: ansi_default;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.learnpanel-label {
+    height: auto;
+    color: ansi_bright_black;
+    margin-top: 1;
+}
+
+#learnpanel-input {
+    width: 100%;
+    height: auto;
+    background: transparent;
+    border: none;
+    border-left: wide ansi_green;
+    padding: 0 0 0 1;
+    color: ansi_default;
+}
+
+.learnpanel-separator {
+    height: auto;
+    color: ansi_bright_black;
+    margin-top: 1;
+}
+
+.learnpanel-answer {
+    height: auto;
+    color: ansi_green;
+    margin-top: 0;
+}
+
+.learnpanel-help {
+    height: auto;
+    color: ansi_bright_black;
+    margin-top: 1;
+}
+
 #sessionpicker-app {
     width: 100%;
     height: auto;

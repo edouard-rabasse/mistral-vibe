@@ -59,6 +59,7 @@ from vibe.cli.textual_ui.widgets.messages import (
 from vibe.cli.textual_ui.widgets.no_markup_static import NoMarkupStatic
 from vibe.cli.textual_ui.widgets.path_display import PathDisplay
 from vibe.cli.textual_ui.widgets.proxy_setup_app import ProxySetupApp
+from vibe.cli.textual_ui.widgets.learn_panel_app import LearnPanelApp
 from vibe.cli.textual_ui.widgets.question_app import QuestionApp
 from vibe.cli.textual_ui.widgets.session_picker import SessionPickerApp
 from vibe.cli.textual_ui.widgets.teleport_message import TeleportMessage
@@ -136,6 +137,7 @@ class BottomApp(StrEnum):
     Approval = auto()
     Config = auto()
     Input = auto()
+    LearnPanel = auto()
     ProxySetup = auto()
     Question = auto()
     SessionPicker = auto()
@@ -209,6 +211,7 @@ class VibeApp(App):  # noqa: PLR0904
         Binding(
             "shift+down", "scroll_chat_down", "Scroll Down", show=False, priority=True
         ),
+        Binding("ctrl+l", "toggle_learn_panel", "Learn Panel", show=False, priority=True),
     ]
 
     def __init__(
@@ -873,6 +876,17 @@ class VibeApp(App):  # noqa: PLR0904
         help_text = self.commands.get_help_text()
         await self._mount_and_scroll(UserCommandMessage(help_text))
 
+    async def action_toggle_learn_panel(self) -> None:
+        if self._current_bottom_app == BottomApp.LearnPanel:
+            await self._switch_to_input_app()
+        else:
+            await self._switch_to_learn_panel_app()
+
+    async def _toggle_learn_mode(self) -> None:
+        self.agent_loop.learn_mode = not self.agent_loop.learn_mode
+        state = "**enabled** — questions will be written to `questions.md` after each turn" if self.agent_loop.learn_mode else "**disabled**"
+        await self._mount_and_scroll(UserCommandMessage(f"Learn mode {state}."))
+
     async def _show_status(self) -> None:
         stats = self.agent_loop.stats
         status_text = f"""## Agent Statistics
@@ -1186,6 +1200,18 @@ class VibeApp(App):  # noqa: PLR0904
     async def _switch_to_question_app(self, args: AskUserQuestionArgs) -> None:
         await self._switch_from_input(QuestionApp(args=args), scroll=True)
 
+    async def _switch_to_learn_panel_app(self) -> None:
+        if self._current_bottom_app == BottomApp.LearnPanel:
+            return
+        widget = LearnPanelApp(
+            questions_file=self.agent_loop.questions_file,
+            learn_mode=self.agent_loop.learn_mode,
+        )
+        await self._switch_from_input(widget)
+
+    async def on_learn_panel_app_closed(self, _: LearnPanelApp.Closed) -> None:
+        await self._switch_to_input_app()
+
     async def _switch_to_input_app(self) -> None:
         for app in BottomApp:
             if app != BottomApp.Input:
@@ -1216,6 +1242,8 @@ class VibeApp(App):  # noqa: PLR0904
                     self.query_one(ApprovalApp).focus()
                 case BottomApp.Question:
                     self.query_one(QuestionApp).focus()
+                case BottomApp.LearnPanel:
+                    self.query_one(LearnPanelApp).focus()
                 case BottomApp.SessionPicker:
                     self.query_one(SessionPickerApp).focus()
                 case app:
@@ -1291,6 +1319,11 @@ class VibeApp(App):  # noqa: PLR0904
 
         if self._current_bottom_app == BottomApp.Question:
             self._handle_question_app_escape()
+            return
+
+        if self._current_bottom_app == BottomApp.LearnPanel:
+            self.run_worker(self._switch_to_input_app(), exclusive=False)
+            self._last_escape_time = None
             return
 
         if self._current_bottom_app == BottomApp.SessionPicker:

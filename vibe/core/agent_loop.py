@@ -173,6 +173,15 @@ class AgentLoop:
 
         self.message_observer = message_observer
         self.enable_streaming = enable_streaming
+        self.learn_mode = False
+        self.questions_file = Path("questions.md")
+        self.question_prompt = (
+            "Generate one educational question about the code modifications made "
+            "and provide a concise answer. "
+            "Format your response exactly as:\n"
+            "<Question> [your question here]\n"
+            "<Answer> [your answer here]"
+        )
         self.middleware_pipeline = MiddlewarePipeline()
         self._setup_middleware()
 
@@ -278,6 +287,43 @@ class AgentLoop:
         self._clean_message_history()
         async for event in self._conversation_loop(msg):
             yield event
+        if self.learn_mode:
+            await self._write_question_to_file()
+
+    async def _write_question_to_file(self) -> None:
+        """Generate a question about the conversation's modifications and append to questions.md."""
+        context_parts: list[str] = []
+        for m in self.messages:
+            if m.role == Role.user and m.content:
+                context_parts.append(f"User: {m.content}")
+            elif m.role == Role.assistant and m.content:
+                context_parts.append(f"Assistant: {m.content}")
+        if not context_parts:
+            return
+
+        context = "\n".join(context_parts[-10:])
+        task = f"Based on this conversation:\n\n{context}\n\n{self.question_prompt}"
+
+        try:
+            subagent = AgentLoop(
+                config=self._base_config,
+                agent_name=BuiltinAgentName.QUESTION_GENERATOR,
+                entrypoint_metadata=self.entrypoint_metadata,
+            )
+            question_content = ""
+            async for event in subagent.act(task):
+                if isinstance(event, AssistantEvent):
+                    question_content += event.content or ""
+            if not question_content:
+                return
+            questions_file = self.questions_file
+            existing = questions_file.read_text(encoding="utf-8") if questions_file.exists() else ""
+            separator = "\n\n" if existing else ""
+            questions_file.write_text(
+                existing + separator + question_content, encoding="utf-8"
+            )
+        except Exception:
+            pass
 
     @property
     def teleport_service(self) -> TeleportService:

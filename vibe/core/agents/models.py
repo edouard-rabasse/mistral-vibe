@@ -39,6 +39,7 @@ class BuiltinAgentName(StrEnum):
     ACCEPT_EDITS = "accept-edits"
     AUTO_APPROVE = "auto-approve"
     EXPLORE = "explore"
+    QUESTION_GENERATOR = "question-generator"
 
 
 @dataclass(frozen=True)
@@ -122,10 +123,20 @@ EXPLORE = AgentProfile(
     overrides={"enabled_tools": ["grep", "read_file"], "system_prompt_id": "explore"},
 )
 
+QUESTION_GENERATOR = AgentProfile(
+    name=BuiltinAgentName.QUESTION_GENERATOR,
+    display_name="Question Generator",
+    description="Subagent that generates an educational Q&A from the main agent's conversation",
+    safety=AgentSafety.SAFE,
+    agent_type=AgentType.SUBAGENT,
+    overrides={"auto_approve": True, "enabled_tools": [], "system_prompt_id": "question_generator"},
+)
+
 BUILTIN_AGENTS: dict[str, AgentProfile] = {
     BuiltinAgentName.DEFAULT: DEFAULT,
     BuiltinAgentName.PLAN: PLAN,
     BuiltinAgentName.ACCEPT_EDITS: ACCEPT_EDITS,
     BuiltinAgentName.AUTO_APPROVE: AUTO_APPROVE,
     BuiltinAgentName.EXPLORE: EXPLORE,
+    BuiltinAgentName.QUESTION_GENERATOR: QUESTION_GENERATOR,
 }
