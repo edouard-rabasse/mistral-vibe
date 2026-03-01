@@ -1228,6 +1228,14 @@ class VibeApp(App):  # noqa: PLR0904
     async def _switch_to_learn_panel_app(self) -> None:
         if self._current_bottom_app == BottomApp.LearnPanel:
             return
+
+        # Creer .vibe/usermemory.yaml au premier usage
+        vibe_dir = Path.cwd() / ".vibe"
+        memory_file = vibe_dir / "usermemory.yaml"
+        if not memory_file.exists():
+            vibe_dir.mkdir(exist_ok=True)
+            memory_file.touch()
+
         await self._switch_from_input(LearnPanelApp(config=self.config))
 
     async def on_learn_panel_app_closed(self, _: LearnPanelApp.Closed) -> None:
