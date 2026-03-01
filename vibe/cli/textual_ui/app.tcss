@@ -658,6 +658,20 @@ StatusMessage {
     height: auto;
 }
 
+#learnconfig-app {
+    width: 100%;
+    height: auto;
+    background: transparent;
+    border: solid ansi_bright_black;
+    padding: 0 1;
+    margin: 0;
+}
+
+#learnconfig-content {
+    width: 100%;
+    height: auto;
+}
+
 .settings-title {
     height: auto;
     text-style: bold;

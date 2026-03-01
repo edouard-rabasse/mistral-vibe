@@ -331,6 +331,12 @@ class VibeConfig(BaseSettings):
     enable_notifications: bool = True
     api_timeout: float = 720.0
 
+    learn_questions_format: str = "Both"
+    learn_content_codebase: bool = True
+    learn_content_coding_patterns: bool = True
+    learn_content_current_tasks: bool = True
+    learn_model: str = "devstral-2"
+
     # TODO(vibe-nuage): remove exclude=True once the feature is publicly available
     nuage_enabled: bool = Field(default=False, exclude=True)
     nuage_base_url: str = Field(default="https://api.globalaegis.net", exclude=True)

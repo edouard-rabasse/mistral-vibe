@@ -77,6 +77,11 @@ class CommandRegistry:
                 description="Browse and resume past sessions",
                 handler="_show_session_picker",
             ),
+            "learn": Command(
+                aliases=frozenset(["/learn"]),
+                description="Edit learn settings",
+                handler="_show_learn_config",
+            ),
         }
 
         for command in excluded_commands:

@@ -43,6 +43,7 @@ from vibe.cli.textual_ui.widgets.banner.banner import Banner
 from vibe.cli.textual_ui.widgets.chat_input import ChatInputContainer
 from vibe.cli.textual_ui.widgets.compact import CompactMessage
 from vibe.cli.textual_ui.widgets.config_app import ConfigApp
+from vibe.cli.textual_ui.widgets.learn_config_app import LearnConfigApp
 from vibe.cli.textual_ui.widgets.context_progress import ContextProgress, TokenState
 from vibe.cli.textual_ui.widgets.load_more import HistoryLoadMoreRequested
 from vibe.cli.textual_ui.widgets.loading import LoadingWidget, paused_timer
@@ -136,6 +137,8 @@ class BottomApp(StrEnum):
     Approval = auto()
     Config = auto()
     Input = auto()
+    LearnConfig = auto()
+    LearnPanel = auto()
     ProxySetup = auto()
     Question = auto()
     SessionPicker = auto()
@@ -456,6 +459,19 @@ class VibeApp(App):  # noqa: PLR0904
         else:
             await self._mount_and_scroll(
                 UserCommandMessage("Configuration closed (no changes saved).")
+            )
+
+        await self._switch_to_input_app()
+
+    async def on_learn_config_app_learn_config_closed(
+        self, message: LearnConfigApp.LearnConfigClosed
+    ) -> None:
+        if message.changes:
+            VibeConfig.save_updates(message.changes)
+            await self._reload_config()
+        else:
+            await self._mount_and_scroll(
+                UserCommandMessage("Learn settings closed (no changes saved).")
             )
 
         await self._switch_to_input_app()
@@ -873,6 +889,18 @@ class VibeApp(App):  # noqa: PLR0904
         help_text = self.commands.get_help_text()
         await self._mount_and_scroll(UserCommandMessage(help_text))
 
+    async def action_toggle_learn_panel(self) -> None:
+        if self._current_bottom_app == BottomApp.LearnPanel:
+            await self._switch_to_input_app()
+        else:
+            await self._switch_to_learn_panel_app()
+
+    async def _show_learn_config(self) -> None:
+        """Switch to the learn configuration app in the bottom panel."""
+        if self._current_bottom_app == BottomApp.LearnConfig:
+            return
+        await self._switch_to_learn_config_app()
+
     async def _show_status(self) -> None:
         stats = self.agent_loop.stats
         status_text = f"""## Agent Statistics
@@ -1168,6 +1196,13 @@ class VibeApp(App):  # noqa: PLR0904
         await self._mount_and_scroll(UserCommandMessage("Configuration opened..."))
         await self._switch_from_input(ConfigApp(self.config))
 
+    async def _switch_to_learn_config_app(self) -> None:
+        if self._current_bottom_app == BottomApp.LearnConfig:
+            return
+
+        await self._mount_and_scroll(UserCommandMessage("Learn settings opened..."))
+        await self._switch_from_input(LearnConfigApp(self.config))
+
     async def _switch_to_proxy_setup_app(self) -> None:
         if self._current_bottom_app == BottomApp.ProxySetup:
             return
@@ -1210,6 +1245,8 @@ class VibeApp(App):  # noqa: PLR0904
                     self.query_one(ChatInputContainer).focus_input()
                 case BottomApp.Config:
                     self.query_one(ConfigApp).focus()
+                case BottomApp.LearnConfig:
+                    self.query_one(LearnConfigApp).focus()
                 case BottomApp.ProxySetup:
                     self.query_one(ProxySetupApp).focus()
                 case BottomApp.Approval:
@@ -1227,6 +1264,14 @@ class VibeApp(App):  # noqa: PLR0904
         try:
             config_app = self.query_one(ConfigApp)
             config_app.action_close()
+        except Exception:
+            pass
+        self._last_escape_time = None
+
+    def _handle_learn_config_app_escape(self) -> None:
+        try:
+            learn_config_app = self.query_one(LearnConfigApp)
+            learn_config_app.action_close()
         except Exception:
             pass
         self._last_escape_time = None
@@ -1274,6 +1319,10 @@ class VibeApp(App):  # noqa: PLR0904
 
         if self._current_bottom_app == BottomApp.Config:
             self._handle_config_app_escape()
+            return
+
+        if self._current_bottom_app == BottomApp.LearnConfig:
+            self._handle_learn_config_app_escape()
             return
 
         if self._current_bottom_app == BottomApp.ProxySetup:
