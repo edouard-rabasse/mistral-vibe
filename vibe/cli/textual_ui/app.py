@@ -1341,22 +1341,22 @@ class VibeApp(App):  # noqa: PLR0904
             f"- Content categories: {', '.join(categories)}\n"
         )
 
-        # Add conversation context from the main agent
-        conversation_summary = self._extract_conversation_summary()
-        if conversation_summary:
-            message += (
-                f"\n## Recent Conversation Context\n"
-                f"The user has been working on the following (from the main coding session):\n"
-                f"{conversation_summary}\n"
-            )
-
-        # Add user learning history from usermemory.yaml
+        # Add user learning history from usermemory.yaml (primary context)
         usermemory_context = self._load_usermemory_context()
         if usermemory_context:
             message += (
-                f"\n## User Learning History\n"
+                f"\n## User Learning History (PRIMARY — use this heavily)\n"
                 f"Previously answered questions and skill levels:\n"
                 f"{usermemory_context}\n"
+            )
+
+        # Add brief conversation context from the main agent (secondary)
+        conversation_summary = self._extract_conversation_summary(max_messages=10)
+        if conversation_summary:
+            message += (
+                f"\n## Recent Conversation Context (secondary — low priority)\n"
+                f"Brief summary of what the user has been working on:\n"
+                f"{conversation_summary}\n"
             )
 
         try:
@@ -1367,14 +1367,31 @@ class VibeApp(App):  # noqa: PLR0904
             learn_panel.set_error(f"Failed to generate questions: {e}")
 
     def _extract_conversation_summary(self, max_messages: int = 30) -> str:
-        """Extract a summary of recent conversation from the main agent loop."""
+        """Extract conversation up to the last user message (the last question asked).
+
+        This avoids including the assistant's most recent in-progress reasoning
+        and focuses on what was actually discussed/requested.
+        """
         messages = self.agent_loop.messages
         if len(messages) <= 1:  # only system message
             return ""
 
+        # Find the index of the last user message — cut off everything after it
+        all_msgs = list(messages)
+        last_user_idx = None
+        for i in range(len(all_msgs) - 1, -1, -1):
+            if all_msgs[i].role == Role.user:
+                last_user_idx = i
+                break
+
+        if last_user_idx is None:
+            return ""
+
+        # Take up to max_messages ending at (and including) the last user message
+        cutoff = all_msgs[: last_user_idx + 1]
+        recent = cutoff[-max_messages:]
+
         lines: list[str] = []
-        # Take the last N non-system messages
-        recent = list(messages)[-max_messages:]
         for msg in recent:
             if msg.role == Role.system:
                 continue
