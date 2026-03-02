@@ -59,9 +59,10 @@ class UserMemoryStatsApp(Container):
         skill_counts: Counter[str] = Counter(
             entry.get("skill", "unknown") for entry in skills
         )
-        timestamps = [
-            entry["answered_at"] for entry in skills if "answered_at" in entry
-        ]
+        def _get_ts(entry: dict) -> str:
+            return str(entry.get("answered_at") or entry.get("timestamp") or "")
+
+        timestamps = [_get_ts(e) for e in skills if _get_ts(e)]
         last_activity = max(timestamps) if timestamps else "—"
 
         easy = difficulty_counts.get("easy", 0)
@@ -74,10 +75,10 @@ class UserMemoryStatsApp(Container):
         # Build daily counts across all entries
         day_counts: dict[str, int] = defaultdict(int)
         for entry in skills:
-            ts = entry.get("answered_at", "")
+            ts = _get_ts(entry)
             if ts:
                 try:
-                    day_counts[str(ts)[:10]] += 1
+                    day_counts[ts[:10]] += 1
                 except Exception:
                     pass
 
