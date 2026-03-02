@@ -109,6 +109,19 @@ class LearnPanelApp(Container):
         self._validation_option_widgets: list[NoMarkupStatic] = []
         self._help_widget: NoMarkupStatic | None = None
 
+    # ── pause / resume (used when an agent panel takes priority) ────
+
+    def pause(self) -> None:
+        """Pause the learn panel so an agent panel can take focus."""
+        self._paused = True
+        self.display = False
+
+    def resume(self) -> None:
+        """Resume the learn panel after the agent panel closes."""
+        self._paused = False
+        self.display = True
+        self.focus()
+
     # ── public API for agent integration ─────────────────────────────
 
     def set_questions(self, questions: list[LearnQuestion]) -> None:
